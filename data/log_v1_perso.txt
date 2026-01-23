@@ -1,0 +1,577 @@
+Using GPU: NVIDIA GeForce GTX 1050 Ti (Compute 6.1)
+Final device selection: cuda
+Concatenating training data...
+Normalizer statistics saved to normalizer_stats.pt
+Train samples: 403, Val samples: 101
+Starting training...
+  Batch 10/101 | Loss: 6.453065
+  Batch 20/101 | Loss: 4.798149
+  Batch 30/101 | Loss: 6.992686
+  Batch 40/101 | Loss: 6.374121
+  Batch 50/101 | Loss: 6.944475
+  Batch 60/101 | Loss: 6.853216
+  Batch 70/101 | Loss: 5.519875
+  Batch 80/101 | Loss: 6.789821
+  Batch 90/101 | Loss: 6.468040
+  Batch 100/101 | Loss: 6.151947
+Epoch 001 | Train Loss: 6.644714 | Val Loss: 5.812151 | Time: 21.8s
+  --> Best model saved with Val Loss: 5.812151
+  Batch 10/101 | Loss: 4.790387
+  Batch 20/101 | Loss: 5.786615
+  Batch 30/101 | Loss: 3.675649
+  Batch 40/101 | Loss: 6.113161
+  Batch 50/101 | Loss: 3.998832
+  Batch 60/101 | Loss: 6.270985
+  Batch 70/101 | Loss: 5.400523
+  Batch 80/101 | Loss: 5.225597
+  Batch 90/101 | Loss: 3.934435
+  Batch 100/101 | Loss: 3.419114
+Epoch 002 | Train Loss: 4.799997 | Val Loss: 3.850904 | Time: 17.7s
+  --> Best model saved with Val Loss: 3.850904
+  Batch 10/101 | Loss: 5.005744
+  Batch 20/101 | Loss: 5.255482
+  Batch 30/101 | Loss: 6.208121
+  Batch 40/101 | Loss: 4.072681
+  Batch 50/101 | Loss: 3.936677
+  Batch 60/101 | Loss: 2.999775
+  Batch 70/101 | Loss: 3.200823
+  Batch 80/101 | Loss: 3.778291
+  Batch 90/101 | Loss: 3.000790
+  Batch 100/101 | Loss: 3.162751
+Epoch 003 | Train Loss: 3.626123 | Val Loss: 2.747220 | Time: 21.1s
+  --> Best model saved with Val Loss: 2.747220
+  Batch 10/101 | Loss: 2.878862
+  Batch 20/101 | Loss: 3.063470
+  Batch 30/101 | Loss: 2.941902
+  Batch 40/101 | Loss: 2.710800
+  Batch 50/101 | Loss: 2.237001
+  Batch 60/101 | Loss: 3.611915
+  Batch 70/101 | Loss: 2.724456
+  Batch 80/101 | Loss: 2.025851
+  Batch 90/101 | Loss: 2.987575
+  Batch 100/101 | Loss: 2.955907
+Epoch 004 | Train Loss: 2.652866 | Val Loss: 2.803065 | Time: 21.5s
+  Batch 10/101 | Loss: 3.088897
+  Batch 20/101 | Loss: 2.038120
+  Batch 30/101 | Loss: 1.364938
+  Batch 40/101 | Loss: 2.224896
+  Batch 50/101 | Loss: 2.051032
+  Batch 60/101 | Loss: 1.369357
+  Batch 70/101 | Loss: 1.555489
+  Batch 80/101 | Loss: 1.893121
+  Batch 90/101 | Loss: 2.664586
+  Batch 100/101 | Loss: 2.202828
+Epoch 005 | Train Loss: 2.082521 | Val Loss: 2.116337 | Time: 19.9s
+  --> Best model saved with Val Loss: 2.116337
+  Batch 10/101 | Loss: 1.924604
+  Batch 20/101 | Loss: 1.594856
+  Batch 30/101 | Loss: 1.740018
+  Batch 40/101 | Loss: 1.580799
+  Batch 50/101 | Loss: 1.528195
+  Batch 60/101 | Loss: 1.086159
+  Batch 70/101 | Loss: 2.046063
+  Batch 80/101 | Loss: 1.718667
+  Batch 90/101 | Loss: 1.761876
+  Batch 100/101 | Loss: 1.470598
+Epoch 006 | Train Loss: 1.941800 | Val Loss: 1.758382 | Time: 20.8s
+  --> Best model saved with Val Loss: 1.758382
+  Batch 10/101 | Loss: 1.673276
+  Batch 20/101 | Loss: 1.412517
+  Batch 30/101 | Loss: 1.129661
+  Batch 40/101 | Loss: 1.150538
+  Batch 50/101 | Loss: 1.673425
+  Batch 60/101 | Loss: 1.477947
+  Batch 70/101 | Loss: 1.624399
+  Batch 80/101 | Loss: 1.131851
+  Batch 90/101 | Loss: 2.902979
+  Batch 100/101 | Loss: 1.843121
+Epoch 007 | Train Loss: 1.659749 | Val Loss: 2.356435 | Time: 18.3s
+  Batch 10/101 | Loss: 1.869059
+  Batch 20/101 | Loss: 2.821069
+  Batch 30/101 | Loss: 2.751629
+  Batch 40/101 | Loss: 2.031939
+  Batch 50/101 | Loss: 1.628221
+  Batch 60/101 | Loss: 2.265067
+  Batch 70/101 | Loss: 1.282080
+  Batch 80/101 | Loss: 1.558384
+  Batch 90/101 | Loss: 1.480873
+  Batch 100/101 | Loss: 1.285847
+Epoch 008 | Train Loss: 1.767687 | Val Loss: 1.762857 | Time: 20.9s
+  Batch 10/101 | Loss: 1.248811
+  Batch 20/101 | Loss: 1.481746
+  Batch 30/101 | Loss: 1.374926
+  Batch 40/101 | Loss: 0.875242
+  Batch 50/101 | Loss: 1.687061
+  Batch 60/101 | Loss: 2.885032
+  Batch 70/101 | Loss: 1.011876
+  Batch 80/101 | Loss: 1.092720
+  Batch 90/101 | Loss: 1.536019
+  Batch 100/101 | Loss: 1.267183
+Epoch 009 | Train Loss: 1.324869 | Val Loss: 1.096790 | Time: 19.6s
+  --> Best model saved with Val Loss: 1.096790
+  Batch 10/101 | Loss: 1.113503
+  Batch 20/101 | Loss: 1.068100
+  Batch 30/101 | Loss: 1.300377
+  Batch 40/101 | Loss: 1.035700
+  Batch 50/101 | Loss: 1.072006
+  Batch 60/101 | Loss: 1.532754
+  Batch 70/101 | Loss: 0.839825
+  Batch 80/101 | Loss: 0.811375
+  Batch 90/101 | Loss: 0.863636
+  Batch 100/101 | Loss: 0.776872
+Epoch 010 | Train Loss: 1.063087 | Val Loss: 1.136079 | Time: 21.5s
+  Batch 10/101 | Loss: 0.689892
+  Batch 20/101 | Loss: 1.811552
+  Batch 30/101 | Loss: 0.960930
+  Batch 40/101 | Loss: 1.414841
+  Batch 50/101 | Loss: 0.748782
+  Batch 60/101 | Loss: 1.715127
+  Batch 70/101 | Loss: 1.245858
+  Batch 80/101 | Loss: 1.199805
+  Batch 90/101 | Loss: 0.905633
+  Batch 100/101 | Loss: 1.353767
+Epoch 011 | Train Loss: 1.000864 | Val Loss: 1.100910 | Time: 21.2s
+  Batch 10/101 | Loss: 1.671696
+  Batch 20/101 | Loss: 1.209917
+  Batch 30/101 | Loss: 1.181387
+  Batch 40/101 | Loss: 0.870897
+  Batch 50/101 | Loss: 1.267945
+  Batch 60/101 | Loss: 0.949980
+  Batch 70/101 | Loss: 1.006336
+  Batch 80/101 | Loss: 1.192294
+  Batch 90/101 | Loss: 0.571701
+  Batch 100/101 | Loss: 0.444123
+Epoch 012 | Train Loss: 1.022365 | Val Loss: 0.942284 | Time: 18.2s
+  --> Best model saved with Val Loss: 0.942284
+  Batch 10/101 | Loss: 0.629112
+  Batch 20/101 | Loss: 0.554650
+  Batch 30/101 | Loss: 0.988043
+  Batch 40/101 | Loss: 0.810560
+  Batch 50/101 | Loss: 0.643471
+  Batch 60/101 | Loss: 0.547646
+  Batch 70/101 | Loss: 0.568902
+  Batch 80/101 | Loss: 0.797412
+  Batch 90/101 | Loss: 0.455647
+  Batch 100/101 | Loss: 0.756100
+Epoch 013 | Train Loss: 0.772974 | Val Loss: 0.916920 | Time: 20.7s
+  --> Best model saved with Val Loss: 0.916920
+  Batch 10/101 | Loss: 0.855951
+  Batch 20/101 | Loss: 1.033435
+  Batch 30/101 | Loss: 0.797605
+  Batch 40/101 | Loss: 0.962676
+  Batch 50/101 | Loss: 0.674810
+  Batch 60/101 | Loss: 1.015525
+  Batch 70/101 | Loss: 0.581414
+  Batch 80/101 | Loss: 0.613547
+  Batch 90/101 | Loss: 0.481406
+  Batch 100/101 | Loss: 0.651584
+Epoch 014 | Train Loss: 0.818682 | Val Loss: 0.820212 | Time: 19.0s
+  --> Best model saved with Val Loss: 0.820212
+  Batch 10/101 | Loss: 0.951940
+  Batch 20/101 | Loss: 0.432827
+  Batch 30/101 | Loss: 0.835378
+  Batch 40/101 | Loss: 0.604746
+  Batch 50/101 | Loss: 0.752566
+  Batch 60/101 | Loss: 0.491253
+  Batch 70/101 | Loss: 0.548983
+  Batch 80/101 | Loss: 0.886339
+  Batch 90/101 | Loss: 1.088328
+  Batch 100/101 | Loss: 0.436499
+Epoch 015 | Train Loss: 0.701377 | Val Loss: 0.812224 | Time: 21.3s
+  --> Best model saved with Val Loss: 0.812224
+  Batch 10/101 | Loss: 0.481026
+  Batch 20/101 | Loss: 0.355598
+  Batch 30/101 | Loss: 0.772506
+  Batch 40/101 | Loss: 0.760364
+  Batch 50/101 | Loss: 0.430762
+  Batch 60/101 | Loss: 0.600745
+  Batch 70/101 | Loss: 0.400385
+  Batch 80/101 | Loss: 1.918036
+  Batch 90/101 | Loss: 0.974019
+  Batch 100/101 | Loss: 1.036413
+Epoch 016 | Train Loss: 0.665045 | Val Loss: 0.695505 | Time: 18.9s
+  --> Best model saved with Val Loss: 0.695505
+  Batch 10/101 | Loss: 1.318975
+  Batch 20/101 | Loss: 0.368960
+  Batch 30/101 | Loss: 0.570269
+  Batch 40/101 | Loss: 0.778740
+  Batch 50/101 | Loss: 0.535969
+  Batch 60/101 | Loss: 0.418426
+  Batch 70/101 | Loss: 0.509684
+  Batch 80/101 | Loss: 0.637825
+  Batch 90/101 | Loss: 0.761091
+  Batch 100/101 | Loss: 0.828440
+Epoch 017 | Train Loss: 0.618991 | Val Loss: 1.153304 | Time: 21.6s
+  Batch 10/101 | Loss: 0.746178
+  Batch 20/101 | Loss: 1.142715
+  Batch 30/101 | Loss: 0.789083
+  Batch 40/101 | Loss: 0.929084
+  Batch 50/101 | Loss: 0.994371
+  Batch 60/101 | Loss: 0.430823
+  Batch 70/101 | Loss: 0.874599
+  Batch 80/101 | Loss: 0.660340
+  Batch 90/101 | Loss: 0.735088
+  Batch 100/101 | Loss: 0.451896
+Epoch 018 | Train Loss: 0.658461 | Val Loss: 0.543820 | Time: 21.7s
+  --> Best model saved with Val Loss: 0.543820
+  Batch 10/101 | Loss: 0.394835
+  Batch 20/101 | Loss: 0.444853
+  Batch 30/101 | Loss: 0.891485
+  Batch 40/101 | Loss: 0.571958
+  Batch 50/101 | Loss: 0.743090
+  Batch 60/101 | Loss: 0.933002
+  Batch 70/101 | Loss: 0.833436
+  Batch 80/101 | Loss: 0.361593
+  Batch 90/101 | Loss: 1.170881
+  Batch 100/101 | Loss: 0.982311
+Epoch 019 | Train Loss: 0.602876 | Val Loss: 0.850961 | Time: 18.8s
+  Batch 10/101 | Loss: 0.573749
+  Batch 20/101 | Loss: 0.571347
+  Batch 30/101 | Loss: 0.283210
+  Batch 40/101 | Loss: 0.673800
+  Batch 50/101 | Loss: 0.414091
+  Batch 60/101 | Loss: 0.864004
+  Batch 70/101 | Loss: 0.655542
+  Batch 80/101 | Loss: 0.464979
+  Batch 90/101 | Loss: 0.532208
+  Batch 100/101 | Loss: 0.754619
+Epoch 020 | Train Loss: 0.620636 | Val Loss: 0.752592 | Time: 21.0s
+  Batch 10/101 | Loss: 0.353678
+  Batch 20/101 | Loss: 0.543591
+  Batch 30/101 | Loss: 1.600000
+  Batch 40/101 | Loss: 0.395434
+  Batch 50/101 | Loss: 0.403036
+  Batch 60/101 | Loss: 0.407689
+  Batch 70/101 | Loss: 0.713009
+  Batch 80/101 | Loss: 0.351024
+  Batch 90/101 | Loss: 0.604755
+  Batch 100/101 | Loss: 0.699335
+Epoch 021 | Train Loss: 0.522436 | Val Loss: 0.605962 | Time: 17.7s
+  Batch 10/101 | Loss: 0.416964
+  Batch 20/101 | Loss: 0.611229
+  Batch 30/101 | Loss: 0.777828
+  Batch 40/101 | Loss: 0.826904
+  Batch 50/101 | Loss: 0.368900
+  Batch 60/101 | Loss: 0.436136
+  Batch 70/101 | Loss: 0.277515
+  Batch 80/101 | Loss: 0.392770
+  Batch 90/101 | Loss: 0.365408
+  Batch 100/101 | Loss: 0.447239
+Epoch 022 | Train Loss: 0.479381 | Val Loss: 0.634574 | Time: 21.1s
+  Batch 10/101 | Loss: 0.523444
+  Batch 20/101 | Loss: 0.384125
+  Batch 30/101 | Loss: 0.392834
+  Batch 40/101 | Loss: 0.409326
+  Batch 50/101 | Loss: 0.459736
+  Batch 60/101 | Loss: 0.466266
+  Batch 70/101 | Loss: 0.362564
+  Batch 80/101 | Loss: 0.372827
+  Batch 90/101 | Loss: 0.540114
+  Batch 100/101 | Loss: 0.389153
+Epoch 023 | Train Loss: 0.451942 | Val Loss: 0.463743 | Time: 18.3s
+  --> Best model saved with Val Loss: 0.463743
+  Batch 10/101 | Loss: 0.294127
+  Batch 20/101 | Loss: 0.361232
+  Batch 30/101 | Loss: 0.288592
+  Batch 40/101 | Loss: 0.754522
+  Batch 50/101 | Loss: 0.410749
+  Batch 60/101 | Loss: 0.445159
+  Batch 70/101 | Loss: 0.340886
+  Batch 80/101 | Loss: 0.396955
+  Batch 90/101 | Loss: 0.663970
+  Batch 100/101 | Loss: 0.275415
+Epoch 024 | Train Loss: 0.437344 | Val Loss: 0.400704 | Time: 21.4s
+  --> Best model saved with Val Loss: 0.400704
+  Batch 10/101 | Loss: 0.281044
+  Batch 20/101 | Loss: 0.554618
+  Batch 30/101 | Loss: 0.244181
+  Batch 40/101 | Loss: 0.261807
+  Batch 50/101 | Loss: 0.382994
+  Batch 60/101 | Loss: 0.229084
+  Batch 70/101 | Loss: 0.287115
+  Batch 80/101 | Loss: 0.768959
+  Batch 90/101 | Loss: 0.352852
+  Batch 100/101 | Loss: 0.674396
+Epoch 025 | Train Loss: 0.396174 | Val Loss: 0.503011 | Time: 20.9s
+  Batch 10/101 | Loss: 0.462212
+  Batch 20/101 | Loss: 0.408121
+  Batch 30/101 | Loss: 0.383674
+  Batch 40/101 | Loss: 0.796903
+  Batch 50/101 | Loss: 0.421476
+  Batch 60/101 | Loss: 0.648304
+  Batch 70/101 | Loss: 0.347721
+  Batch 80/101 | Loss: 0.606213
+  Batch 90/101 | Loss: 0.567423
+  Batch 100/101 | Loss: 0.578094
+Epoch 026 | Train Loss: 0.524262 | Val Loss: 0.468345 | Time: 18.0s
+  Batch 10/101 | Loss: 0.449483
+  Batch 20/101 | Loss: 0.684152
+  Batch 30/101 | Loss: 0.532910
+  Batch 40/101 | Loss: 0.442441
+  Batch 50/101 | Loss: 0.580613
+  Batch 60/101 | Loss: 0.499137
+  Batch 70/101 | Loss: 0.329475
+  Batch 80/101 | Loss: 0.344916
+  Batch 90/101 | Loss: 0.715067
+  Batch 100/101 | Loss: 0.306769
+Epoch 027 | Train Loss: 0.398945 | Val Loss: 0.433038 | Time: 21.2s
+  Batch 10/101 | Loss: 0.326595
+  Batch 20/101 | Loss: 0.367104
+  Batch 30/101 | Loss: 0.463710
+  Batch 40/101 | Loss: 0.747973
+  Batch 50/101 | Loss: 0.517621
+  Batch 60/101 | Loss: 0.781506
+  Batch 70/101 | Loss: 0.460101
+  Batch 80/101 | Loss: 0.349572
+  Batch 90/101 | Loss: 0.279365
+  Batch 100/101 | Loss: 0.396106
+Epoch 028 | Train Loss: 0.404124 | Val Loss: 0.415997 | Time: 18.2s
+  Batch 10/101 | Loss: 0.458262
+  Batch 20/101 | Loss: 0.779691
+  Batch 30/101 | Loss: 0.507467
+  Batch 40/101 | Loss: 0.420139
+  Batch 50/101 | Loss: 0.234276
+  Batch 60/101 | Loss: 0.317700
+  Batch 70/101 | Loss: 0.235507
+  Batch 80/101 | Loss: 0.335710
+  Batch 90/101 | Loss: 0.313508
+  Batch 100/101 | Loss: 0.325535
+Epoch 029 | Train Loss: 0.430423 | Val Loss: 0.375993 | Time: 20.9s
+  --> Best model saved with Val Loss: 0.375993
+  Batch 10/101 | Loss: 0.456916
+  Batch 20/101 | Loss: 0.355282
+  Batch 30/101 | Loss: 0.365223
+  Batch 40/101 | Loss: 0.556674
+  Batch 50/101 | Loss: 0.297103
+  Batch 60/101 | Loss: 0.432340
+  Batch 70/101 | Loss: 0.298455
+  Batch 80/101 | Loss: 0.297942
+  Batch 90/101 | Loss: 0.499636
+  Batch 100/101 | Loss: 0.336824
+Epoch 030 | Train Loss: 0.414942 | Val Loss: 0.495334 | Time: 17.9s
+  Batch 10/101 | Loss: 0.690192
+  Batch 20/101 | Loss: 0.800475
+  Batch 30/101 | Loss: 0.583639
+  Batch 40/101 | Loss: 0.331046
+  Batch 50/101 | Loss: 0.327917
+  Batch 60/101 | Loss: 0.279690
+  Batch 70/101 | Loss: 0.401118
+  Batch 80/101 | Loss: 0.602376
+  Batch 90/101 | Loss: 0.489511
+  Batch 100/101 | Loss: 0.466688
+Epoch 031 | Train Loss: 0.423655 | Val Loss: 0.497620 | Time: 20.9s
+  Batch 10/101 | Loss: 0.356852
+  Batch 20/101 | Loss: 0.264070
+  Batch 30/101 | Loss: 0.428511
+  Batch 40/101 | Loss: 0.425837
+  Batch 50/101 | Loss: 0.678433
+  Batch 60/101 | Loss: 0.408882
+  Batch 70/101 | Loss: 0.415317
+  Batch 80/101 | Loss: 0.318967
+  Batch 90/101 | Loss: 0.304878
+  Batch 100/101 | Loss: 0.459092
+Epoch 032 | Train Loss: 0.425108 | Val Loss: 0.443398 | Time: 18.7s
+  Batch 10/101 | Loss: 0.423862
+  Batch 20/101 | Loss: 0.686975
+  Batch 30/101 | Loss: 0.562889
+  Batch 40/101 | Loss: 0.829555
+  Batch 50/101 | Loss: 0.311687
+  Batch 60/101 | Loss: 0.244110
+  Batch 70/101 | Loss: 0.417240
+  Batch 80/101 | Loss: 0.219917
+  Batch 90/101 | Loss: 0.643830
+  Batch 100/101 | Loss: 0.221412
+Epoch 033 | Train Loss: 0.468016 | Val Loss: 0.420820 | Time: 21.3s
+  Batch 10/101 | Loss: 0.505261
+  Batch 20/101 | Loss: 0.407711
+  Batch 30/101 | Loss: 0.224147
+  Batch 40/101 | Loss: 0.271658
+  Batch 50/101 | Loss: 0.532173
+  Batch 60/101 | Loss: 0.286188
+  Batch 70/101 | Loss: 0.390765
+  Batch 80/101 | Loss: 0.350013
+  Batch 90/101 | Loss: 0.235871
+  Batch 100/101 | Loss: 0.331308
+Epoch 034 | Train Loss: 0.328007 | Val Loss: 0.335748 | Time: 21.0s
+  --> Best model saved with Val Loss: 0.335748
+  Batch 10/101 | Loss: 0.239098
+  Batch 20/101 | Loss: 0.247012
+  Batch 30/101 | Loss: 0.478646
+  Batch 40/101 | Loss: 0.234534
+  Batch 50/101 | Loss: 0.283285
+  Batch 60/101 | Loss: 0.733710
+  Batch 70/101 | Loss: 0.422631
+  Batch 80/101 | Loss: 0.625050
+  Batch 90/101 | Loss: 0.246497
+  Batch 100/101 | Loss: 0.490414
+Epoch 035 | Train Loss: 0.318117 | Val Loss: 0.363051 | Time: 18.0s
+  Batch 10/101 | Loss: 0.219720
+  Batch 20/101 | Loss: 0.271787
+  Batch 30/101 | Loss: 0.374529
+  Batch 40/101 | Loss: 0.229562
+  Batch 50/101 | Loss: 0.554292
+  Batch 60/101 | Loss: 0.524116
+  Batch 70/101 | Loss: 0.287524
+  Batch 80/101 | Loss: 0.236007
+  Batch 90/101 | Loss: 0.445057
+  Batch 100/101 | Loss: 0.155665
+Epoch 036 | Train Loss: 0.335537 | Val Loss: 0.383721 | Time: 21.2s
+  Batch 10/101 | Loss: 0.485655
+  Batch 20/101 | Loss: 0.372484
+  Batch 30/101 | Loss: 0.265080
+  Batch 40/101 | Loss: 0.328604
+  Batch 50/101 | Loss: 0.810194
+  Batch 60/101 | Loss: 0.325878
+  Batch 70/101 | Loss: 0.629286
+  Batch 80/101 | Loss: 0.394267
+  Batch 90/101 | Loss: 0.645667
+  Batch 100/101 | Loss: 0.392111
+Epoch 037 | Train Loss: 0.346798 | Val Loss: 0.497647 | Time: 18.0s
+  Batch 10/101 | Loss: 0.425401
+  Batch 20/101 | Loss: 0.737867
+  Batch 30/101 | Loss: 0.575049
+  Batch 40/101 | Loss: 0.579204
+  Batch 50/101 | Loss: 0.613147
+  Batch 60/101 | Loss: 0.276234
+  Batch 70/101 | Loss: 0.203310
+  Batch 80/101 | Loss: 0.239704
+  Batch 90/101 | Loss: 0.376025
+  Batch 100/101 | Loss: 0.304964
+Epoch 038 | Train Loss: 0.413507 | Val Loss: 0.371308 | Time: 21.1s
+  Batch 10/101 | Loss: 0.351344
+  Batch 20/101 | Loss: 0.200169
+  Batch 30/101 | Loss: 0.366676
+  Batch 40/101 | Loss: 0.351925
+  Batch 50/101 | Loss: 0.186122
+  Batch 60/101 | Loss: 0.348062
+  Batch 70/101 | Loss: 0.393121
+  Batch 80/101 | Loss: 0.251637
+  Batch 90/101 | Loss: 0.497640
+  Batch 100/101 | Loss: 0.609806
+Epoch 039 | Train Loss: 0.366448 | Val Loss: 0.431385 | Time: 18.2s
+  Batch 10/101 | Loss: 0.362101
+  Batch 20/101 | Loss: 0.427872
+  Batch 30/101 | Loss: 0.244068
+  Batch 40/101 | Loss: 0.370543
+  Batch 50/101 | Loss: 0.295440
+  Batch 60/101 | Loss: 0.422898
+  Batch 70/101 | Loss: 0.390398
+  Batch 80/101 | Loss: 0.361194
+  Batch 90/101 | Loss: 0.165934
+  Batch 100/101 | Loss: 0.235153
+Epoch 040 | Train Loss: 0.346507 | Val Loss: 0.395453 | Time: 21.0s
+  Batch 10/101 | Loss: 0.337698
+  Batch 20/101 | Loss: 0.545150
+  Batch 30/101 | Loss: 0.402338
+  Batch 40/101 | Loss: 0.532559
+  Batch 50/101 | Loss: 0.232043
+  Batch 60/101 | Loss: 0.229611
+  Batch 70/101 | Loss: 0.235100
+  Batch 80/101 | Loss: 0.282608
+  Batch 90/101 | Loss: 0.361765
+  Batch 100/101 | Loss: 0.258639
+Epoch 041 | Train Loss: 0.316502 | Val Loss: 0.309155 | Time: 21.6s
+  --> Best model saved with Val Loss: 0.309155
+  Batch 10/101 | Loss: 0.343839
+  Batch 20/101 | Loss: 0.208849
+  Batch 30/101 | Loss: 0.249839
+  Batch 40/101 | Loss: 0.174979
+  Batch 50/101 | Loss: 0.205108
+  Batch 60/101 | Loss: 0.180882
+  Batch 70/101 | Loss: 0.205047
+  Batch 80/101 | Loss: 0.369454
+  Batch 90/101 | Loss: 0.294810
+  Batch 100/101 | Loss: 0.539698
+Epoch 042 | Train Loss: 0.339525 | Val Loss: 0.425783 | Time: 18.4s
+  Batch 10/101 | Loss: 0.618956
+  Batch 20/101 | Loss: 0.217321
+  Batch 30/101 | Loss: 0.376909
+  Batch 40/101 | Loss: 0.347650
+  Batch 50/101 | Loss: 0.194908
+  Batch 60/101 | Loss: 0.738187
+  Batch 70/101 | Loss: 0.228863
+  Batch 80/101 | Loss: 0.338076
+  Batch 90/101 | Loss: 0.351022
+  Batch 100/101 | Loss: 0.262543
+Epoch 043 | Train Loss: 0.325701 | Val Loss: 0.327175 | Time: 21.3s
+  Batch 10/101 | Loss: 0.235528
+  Batch 20/101 | Loss: 0.206133
+  Batch 30/101 | Loss: 0.250198
+  Batch 40/101 | Loss: 0.217880
+  Batch 50/101 | Loss: 0.336547
+  Batch 60/101 | Loss: 0.262827
+  Batch 70/101 | Loss: 0.231527
+  Batch 80/101 | Loss: 0.379926
+  Batch 90/101 | Loss: 0.172879
+  Batch 100/101 | Loss: 0.249293
+Epoch 044 | Train Loss: 0.309511 | Val Loss: 0.326102 | Time: 18.8s
+  Batch 10/101 | Loss: 0.202741
+  Batch 20/101 | Loss: 0.290649
+  Batch 30/101 | Loss: 0.653295
+  Batch 40/101 | Loss: 0.410844
+  Batch 50/101 | Loss: 0.253716
+  Batch 60/101 | Loss: 0.227634
+  Batch 70/101 | Loss: 0.275147
+  Batch 80/101 | Loss: 0.267664
+  Batch 90/101 | Loss: 0.180934
+  Batch 100/101 | Loss: 0.165794
+Epoch 045 | Train Loss: 0.278674 | Val Loss: 0.299296 | Time: 21.4s
+  --> Best model saved with Val Loss: 0.299296
+  Batch 10/101 | Loss: 0.159651
+  Batch 20/101 | Loss: 0.147736
+  Batch 30/101 | Loss: 0.180199
+  Batch 40/101 | Loss: 0.255402
+  Batch 50/101 | Loss: 0.390902
+  Batch 60/101 | Loss: 0.285883
+  Batch 70/101 | Loss: 0.308386
+  Batch 80/101 | Loss: 0.246244
+  Batch 90/101 | Loss: 0.247997
+  Batch 100/101 | Loss: 0.288390
+Epoch 046 | Train Loss: 0.288567 | Val Loss: 0.320791 | Time: 18.5s
+  Batch 10/101 | Loss: 0.398247
+  Batch 20/101 | Loss: 0.472893
+  Batch 30/101 | Loss: 0.237724
+  Batch 40/101 | Loss: 0.414068
+  Batch 50/101 | Loss: 0.396714
+  Batch 60/101 | Loss: 0.182457
+  Batch 70/101 | Loss: 0.147547
+  Batch 80/101 | Loss: 0.279050
+  Batch 90/101 | Loss: 0.223773
+  Batch 100/101 | Loss: 0.227769
+Epoch 047 | Train Loss: 0.341825 | Val Loss: 0.339259 | Time: 21.5s
+  Batch 10/101 | Loss: 0.279193
+  Batch 20/101 | Loss: 0.464725
+  Batch 30/101 | Loss: 0.605438
+  Batch 40/101 | Loss: 0.352866
+  Batch 50/101 | Loss: 0.255185
+  Batch 60/101 | Loss: 0.319622
+  Batch 70/101 | Loss: 0.344558
+  Batch 80/101 | Loss: 0.150639
+  Batch 90/101 | Loss: 0.266837
+  Batch 100/101 | Loss: 0.270556
+Epoch 048 | Train Loss: 0.327483 | Val Loss: 0.286155 | Time: 21.5s
+  --> Best model saved with Val Loss: 0.286155
+  Batch 10/101 | Loss: 0.801504
+  Batch 20/101 | Loss: 0.257659
+  Batch 30/101 | Loss: 0.248625
+  Batch 40/101 | Loss: 0.297031
+  Batch 50/101 | Loss: 0.316402
+  Batch 60/101 | Loss: 0.322056
+  Batch 70/101 | Loss: 0.238181
+  Batch 80/101 | Loss: 0.219200
+  Batch 90/101 | Loss: 0.117376
+  Batch 100/101 | Loss: 0.586401
+Epoch 049 | Train Loss: 0.305660 | Val Loss: 0.295261 | Time: 18.6s
+  Batch 10/101 | Loss: 0.239730
+  Batch 20/101 | Loss: 0.152677
+  Batch 30/101 | Loss: 0.417268
+  Batch 40/101 | Loss: 0.256922
+  Batch 50/101 | Loss: 0.569264
+  Batch 60/101 | Loss: 0.333774
+  Batch 70/101 | Loss: 0.272630
+  Batch 80/101 | Loss: 0.146966
+  Batch 90/101 | Loss: 0.249208
+  Batch 100/101 | Loss: 0.410451
+Epoch 050 | Train Loss: 0.321786 | Val Loss: 0.353643 | Time: 21.6s
+Training finished!
+Génération du graphique de convergence...
