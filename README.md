@@ -29,10 +29,10 @@ Ce projet présente un simulateur aérodynamique intelligent capable de prédire
 Le modèle a été validé par rapport à des simulations OpenFOAM (SimpleFoam) et des données théoriques XFOIL.
 
 ### Courbe de Convergence
-![Convergence](learning_curve_v5_perso.png)
+![Convergence](data/learning_curve_v5_perso.png)
 
 ### Comparaison des Champs de Vitesse
-![perso_v5_val_sim_0001_naca_1316](perso_v5_val_sim_0001_naca_1316.png)
+![perso_v5_val_sim_0001_naca_1316](data/perso_v5_val_sim_0001_naca_1316.png)
 
 ## 🧠 Méthodologie
 1. **Génération** : Création automatique de maillages Gmsh et exécution de simulations OpenFOAM en parallèle.
