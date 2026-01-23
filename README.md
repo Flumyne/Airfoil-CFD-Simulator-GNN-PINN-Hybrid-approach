@@ -12,13 +12,12 @@ Ce projet présente un simulateur aérodynamique intelligent capable de prédire
 - **Innovation** : 
     - **Smart Density Sampling** : Échantillonnage haute densité dans la couche limite (près du mur) pour capturer les gradients critiques.
     - **Hybrid Loss (PINN)** : La fonction de perte impose des contraintes physiques aux frontières (Inlet, No-Slip sur le mur).
-- **Précision** : Erreur de vitesse moyenne < 0.4 m/s sur les cas de test.
+- **Précision** : Erreur de vitesse moyenne < 0.5 m/s sur les cas de test.
 
 ## 📁 Structure du Projet
 - `src/` : Code source complet (Génération de données, entraînement, validation).
 - `airfoil_gnn_best.pt` : Poids du modèle entraîné (Version V5 ).
 - `normalizer_stats.pt` : Statistiques de normalisation pour l'inférence.
-- `journal/` : Historique du développement et de l'optimisation (V1 à V5).
 
 ## 🛠️ Installation & Utilisation
 1. **Pré-requis** : PyTorch, PyTorch Geometric, PyVista, Scikit-Learn.
@@ -26,7 +25,7 @@ Ce projet présente un simulateur aérodynamique intelligent capable de prédire
 3. **Validation** : `python src/validate_gnn_vs_openfoam.py`
 
 ## 📊 Résultats
-Le modèle a été validé par rapport à des simulations OpenFOAM (SimpleFoam) et des données théoriques XFOIL.
+Le modèle a été validé par rapport à des simulations OpenFOAM (SimpleFoam) avec un écart < 2% et des données théoriques XFOIL.
 
 ### Courbe de Convergence
 ![Convergence](data/learning_curve_v5_perso.png)
