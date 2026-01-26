@@ -12,6 +12,7 @@ Ce projet présente un simulateur aérodynamique intelligent capable de prédire
 
 ## 📁 Structure du Projet
 - `src/` : Code source complet (Génération de données, entraînement, validation).
+- `data/` : Données de simulation et résultats.
 - `airfoil_gnn_best.pt` : Poids du modèle entraîné (Version V5 ).
 - `normalizer_stats.pt` : Statistiques de normalisation pour l'inférence.
 
