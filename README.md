@@ -1,9 +1,5 @@
 # Airfoil CFD Simulator : GNN & PINN Hybrid approach
 
-![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
-![PyTorch](https://img.shields.io/badge/pytorch-2.0+-ee4c2c.svg)
-![OpenFOAM](https://img.shields.io/badge/CFD-OpenFOAM-005a9c.svg)
-
 Ce projet présente un simulateur aérodynamique intelligent capable de prédire les champs de pression et de vitesse autour de profils d'ailes NACA 4-chiffres. Il utilise une architecture hybride combinant les **Graph Neural Networks (GNN)** et les principes des **Physics-Informed Neural Networks (PINN)**.
 
 ## 🚀 Points Clés
