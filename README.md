@@ -1,14 +1,15 @@
 # Airfoil CFD Simulator : GNN & PINN Hybrid approach
 
-Ce projet présente un simulateur aérodynamique intelligent capable de prédire les champs de pression et de vitesse autour de profils d'ailes NACA 4-chiffres. Il utilise une architecture hybride combinant les **Graph Neural Networks (GNN)** et les principes des **Physics-Informed Neural Networks (PINN)**.
+Ce projet présente un simulateur aérodynamique intelligent capable de prédire les champs de pression et de vitesse autour de profils d'ailes NACA 4-chiffres. Il utilise une architecture hybride combinant les **Graph Neural Networks (GNN)** et les principes des **Physics-Informed Neural Networks (PINN)** pour servir de modèle de substitution (*Surrogate Model*) temps réel.
 
-## 🚀 Points Clés
-- **Vitesse de prédiction** : ~15ms (contre ~120s pour OpenFOAM, soit une accélération de x8000).
-- **Architecture** : Graph Network basé sur MeshGraphNet (4 couches, 128 unités cachées).
-- **Innovation** : 
-    - **Smart Density Sampling** : Échantillonnage haute densité dans la couche limite (près du mur) pour capturer les gradients critiques.
-    - **Hybrid Loss (PINN)** : La fonction de perte impose des contraintes physiques aux frontières (Inlet, No-Slip sur le mur).
-- **Précision** : Erreur de vitesse moyenne < 0.5 m/s sur les cas de test.
+## 🚀 Points Clés & Performance
+- **Accélération Massive** : Prédiction en **~15ms** (vs ~120s pour OpenFOAM), soit un gain de vitesse de **x8000**.
+- **Dataset Robuste** : Entraîné et validé sur **500 simulations RANS** générées automatiquement, couvrant une large variété de géométries NACA.
+- **Haute Précision** : Erreur moyenne relative **< 2%** sur les champs de vitesse et de pression par rapport au solveur physique de référence.
+- **Architecture Avancée** :
+    - Graph Network basé sur **MeshGraphNet** (4 couches de message passing, 128 unités cachées).
+    - **Smart Density Sampling** : Échantillonnage adaptatif (100% des points en couche limite, 10% en champ lointain) pour capturer la physique critique sans compromis.
+    - **Hybrid Loss (PINN)** : La fonction de coût intègre des contraintes physiques (Conditions aux limites, No-Slip sur le mur, Équations de conservation).
 
 ## 📁 Structure du Projet
 - `src/` : Code source complet (Génération de données, entraînement, validation).
@@ -17,9 +18,11 @@ Ce projet présente un simulateur aérodynamique intelligent capable de prédire
 - `normalizer_stats.pt` : Statistiques de normalisation pour l'inférence.
 
 ## 🛠️ Installation & Utilisation
-1. **Pré-requis** : PyTorch, PyTorch Geometric, PyVista, Scikit-Learn.
-2. **Entraînement** : `python src/train.py`
-3. **Validation** : `python src/validate_gnn_vs_openfoam.py`
+1. **Pré-requis** : PyTorch, PyTorch Geometric, PyVista, Scikit-Learn, OpenFOAM.
+2. **Génération Dataset** : `python src/generate_dataset.py`
+3. **Création des Graphes** : `python src/extract_to_graphs.py`
+4. **Entraînement** : `python src/train.py`
+5. **Validation** : `python src/validate_gnn_vs_openfoam.py`
 
 ## 📊 Résultats
 Le modèle a été validé par rapport à des simulations OpenFOAM (SimpleFoam) avec un écart < 2% et des données théoriques XFOIL.
