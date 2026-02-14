@@ -1,6 +1,8 @@
-# Airfoil CFD Simulator : GNN & PINN Hybrid approach
+# Airfoil & Rocket Nozzle SciML Simulator (GNN-PINN Hybrid)
 
-Ce projet présente un simulateur aérodynamique intelligent capable de prédire les champs de pression et de vitesse autour de profils d'ailes NACA 4-chiffres. Il utilise une architecture hybride combinant les **Graph Neural Networks (GNN)** et les principes des **Physics-Informed Neural Networks (PINN)** pour servir de modèle de substitution (*Surrogate Model*) temps réel.
+Ce projet présente un simulateur aérodynamique intelligent capable de prédire les champs physiques complexes avec une précision quasi-CFD. Initialement focalisé sur l'aéronautique (ailes NACA), le projet évolue vers des applications spatiales critiques (tuyères supersoniques) en intégrant des principes de **Scientific Machine Learning (SciML)**.
+
+Il utilise une architecture hybride combinant les **Graph Neural Networks (GNN)** et les principes des **Physics-Informed Neural Networks (PINN)** pour servir de modèle de substitution (*Surrogate Model*) temps réel sur matériel contraint (Edge AI).
 
 ## 🚀 Points Clés & Performance
 - **Accélération Massive** : Prédiction en **~15ms** (vs ~120s pour OpenFOAM), soit un gain de vitesse de **x8000**.
@@ -12,31 +14,30 @@ Ce projet présente un simulateur aérodynamique intelligent capable de prédire
     - **Hybrid Loss (PINN)** : La fonction de coût intègre des contraintes physiques (Conditions aux limites, No-Slip sur le mur, Équations de conservation).
 
 ## 📁 Structure du Projet
-- `src/` : Code source complet (Génération de données, entraînement, validation).
-- `data/` : Données de simulation et résultats.
-- `airfoil_gnn_best.pt` : Poids du modèle entraîné (Version V5 ).
+- `src/airfoil2D/` : Pipeline original pour les profils d'ailes NACA.
+- `src/lavalNozzle/` : Nouveau pipeline pour les tuyères supersoniques (En cours).
+- `airfoil_gnn_best.pt` : Poids du modèle entraîné.
 - `normalizer_stats.pt` : Statistiques de normalisation pour l'inférence.
+
+## 🛰️ Roadmap Spatiale (Objectifs 2026)
+Le projet pivote actuellement vers des cas d'usage à haute valeur ajoutée pour l'ingénierie spatiale :
+
+1.  **Pivot Supersonique** : Transition du régime incompressible (aile) vers le régime **compressible** (tuyère de Laval).
+2.  **Capturation de Chocs (Shock Capturing)** : Entraînement sur solvers `rhoCentralFoam` pour prédire les diamants de Mach et les ondes de choc.
+3.  **Physique Augmentée** : Intégration de la conservation de la masse et de l'énergie comme contraintes fortes dans le GNN.
+4.  **Optimisation Multiobjectif** : Utilisation du modèle comme moteur pour l'optimisation de forme temps réel (Shape Optimization).
 
 ## 🛠️ Installation & Utilisation
 1. **Pré-requis** : PyTorch, PyTorch Geometric, PyVista, Scikit-Learn, OpenFOAM.
-2. **Génération Dataset** : `python src/generate_dataset.py`
-3. **Création des Graphes** : `python src/extract_to_graphs.py`
-4. **Entraînement** : `python src/train.py`
-5. **Validation** : `python src/validate_gnn_vs_openfoam.py`
+2. **Génération Dataset** : `python src/airfoil2D/generate_dataset.py`
+3. **Création des Graphes** : `python src/airfoil2D/extract_to_graphs.py`
+4. **Entraînement** : `python src/airfoil2D/train.py`
+5. **Validation** : `python src/airfoil2D/validate_gnn_vs_openfoam.py`
 
-## 📊 Résultats
-Le modèle a été validé par rapport à des simulations OpenFOAM (SimpleFoam) avec un écart < 2% et des données théoriques XFOIL.
+## 📊 Résultats (Version Aile 2D)
+Le modèle a été validé par rapport à des simulations OpenFOAM (SimpleFoam) avec un écart < 2%.
 
-### Courbe de Convergence
-![Convergence](data/learning_curve_v5_perso.png)
-
-### Comparaison des Champs de Vitesse
 ![perso_v5_val_sim_0001_naca_1316](data/perso_v5_val_sim_0001_naca_1316.png)
 
-## 🧠 Méthodologie
-1. **Génération** : Création automatique de maillages Gmsh et exécution de simulations OpenFOAM en parallèle.
-2. **Graph Construction** : Conversion des maillages en graphes KNN (K-Nearest Neighbors) avec attributs géométriques relatifs.
-3. **Entraînement** : Utilisation du scheduler `OneCycleLR` pour une convergence rapide et stable.
-
 ---
-*Projet Personel réalisé dans le cadre d'une recherche sur l'accélération de la conception aéronautique par l'IA.*
+*Projet réalisé pour démontrer la puissance du SciML appliqué à l'ingénierie spatiale sous contraintes matérielles.*

@@ -41,13 +41,9 @@ def process_case_to_graph(case_dir, output_file):
         
         # Lire le maillage
         mesh = reader.read()
-        
-        # OpenFOAMReader renvoie un dataset MultiBlock
-        # Typiquement : [internalMesh, patch1, patch2, ...]
         internal_mesh = mesh["internalMesh"]
 
         # 3. Extraire les coordonnées des nœuds
-        # PyVista/VTK stocke les données sur les cellules (CellData) et GNN veut sur les points (PointData)
         mesh_points = internal_mesh.cell_data_to_point_data()
 
         node_type_full = torch.zeros(mesh_points.n_points, dtype=torch.long)
@@ -69,7 +65,6 @@ def process_case_to_graph(case_dir, output_file):
             for patch_name in boundary_block.keys():
                 patch = boundary_block[patch_name]
                 if patch.n_points == 0 : continue
-                # 1. Identifier le type de rontière selon le nom du patch OpenFOAM
                 current_type = -1
                 if 'airfoil' in patch_name.lower():
                     current_type = TYPE_WALL
@@ -81,21 +76,17 @@ def process_case_to_graph(case_dir, output_file):
                 else:
                     current_type = TYPE_FLUID
                 
-                # 2. Identifier les points de la frontière
                 if current_type != -1:
                     _, found_ids = internal_tree.query(patch.points)
                     node_type_full[found_ids] = current_type
 
 
         # --- ÉCHANTILLONNAGE INTELLIGENT (BASÉ SUR LA DENSITÉ) ---
-        # 3. Calculer la distance au mur pour TOUS les points (avant sous-échantillonnage)
         dist_to_wall_full = np.full(mesh_points.n_points, 100.0)
         
         if wall_points_all:
             all_wall_pts = np.concatenate(wall_points_all, axis=0)
-            # Utiliser KDTree pour une recherche rapide
             wall_tree = KDTree(all_wall_pts)
-            # Interroger tous les points
             dists, _ = wall_tree.query(mesh_points.points)
             dist_to_wall_full = dists
 

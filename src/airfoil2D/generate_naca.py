@@ -11,7 +11,7 @@ def generate_naca4(m, p, t, n_points=100):
     """
     x = np.linspace(0, 1, n_points)
     
-    # Distribution de l'épaisseur
+    # Moitié de l'épaisseur du profil
     yt = 5 * t * (0.2969 * np.sqrt(x) - 0.1260 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1015 * x**4)
     
     # Ligne de cambrure et gradient

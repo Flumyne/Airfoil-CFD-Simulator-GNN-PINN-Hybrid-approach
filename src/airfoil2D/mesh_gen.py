@@ -15,7 +15,6 @@ def create_geo_file(airfoil_file, output_geo, lc_airfoil=0.015, lc_domain=0.5):
         f.write(f"lc_domain = {lc_domain};\n\n")
         
         # Points de l'aile
-        # Le point 100 est typiquement le Bord d'Attaque pour NACA 200 pts
         for i, (x, y) in enumerate(points):
             f.write(f"Point({i+1}) = {{{x}, {y}, 0, lc_airfoil}};\n")
         
@@ -41,9 +40,9 @@ def create_geo_file(airfoil_file, output_geo, lc_airfoil=0.015, lc_domain=0.5):
         f.write("Plane Surface(1) = {1, 2};\n\n")
 
         # --- CHAMPS DE RAFFINEMENT ---
-        # Raffiner le Bord d'Attaque (Point 100) et le Bord de Fuite (Points 1, 200)
+        # Raffiner le Bord d'Attaque (Point 1) et le Bord de Fuite (Points 199)
         f.write("Field[1] = Distance;\n")
-        f.write("Field[1].NodesList = {1, 100, 199};\n") # BF et BA
+        f.write("Field[1].NodesList = {1, 199};\n") # BF et BA
         f.write("Field[2] = Threshold;\n")
         f.write("Field[2].IField = 1;\n")
         f.write(f"Field[2].LcMin = {lc_airfoil / 4};\n")

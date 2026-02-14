@@ -61,7 +61,7 @@ def compute_hybrid_loss(pred, batch, lambda_data=1.0):
         loss_wall = torch.tensor(0.0, device=device)
 
     # --- C. PERTE TOTAL ---
-    loss = (lambda_data * loss_data) +  (1.0 * loss_phy_inlet) + (2.0 * loss_wall)
+    loss = (lambda_data * loss_data) +  (1.0 * loss_phy_inlet) + (5.0 * loss_wall)
     return loss, loss_data, loss_phy_inlet, loss_wall
 
 
