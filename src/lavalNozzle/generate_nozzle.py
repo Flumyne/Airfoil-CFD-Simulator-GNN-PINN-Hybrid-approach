@@ -32,7 +32,7 @@ def save_nozzle(x, y, filename):
 
 
 if __name__ == "__main__":
-    x,y = generate_nozzle(1, 4, 2, 1, 1)
+    x,y = generate_nozzle(0.1, 0.3, 0.2, 1, 0.3)
     os.makedirs("data/nozzle", exist_ok=True)
-    save_nozzle(x, y, "data/nozzle/nozzle_14211.dat")    
-    print("Nozzle generated and saved to data/nozzle/nozzle_14211.dat")        
+    save_nozzle(x, y, "data/nozzle/nozzle_010302103.dat")    
+    print("Nozzle generated and saved to data/nozzle/nozzle_010302103.dat")        

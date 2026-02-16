@@ -68,8 +68,9 @@ def create_geo_file(nozzle_file, output_geo,l_convergent, lc_tuyere=0.0015, lc_c
         f.write("Field[2].IField = 1;\n")
         f.write(f"Field[2].LcMin = {lc_tuyere};\n")      # Taille au contact
         f.write(f"Field[2].LcMax = {lc_domain};\n")      # Taille loin
-        f.write("Field[2].DistMin = 0.02;\n")            # Fin jusqu'à 5cm
+        f.write("Field[2].DistMin = 0.1;\n")            # Fin jusqu'à 5cm
         f.write("Field[2].DistMax = 0.2;\n")             # Transition vers le gros maillage
+
 
         # 3. On raffine spécifiquement le COL (Throat) pour capturer Mach 1
         # On utilise le point du col (milieu du tableau points)
@@ -79,19 +80,42 @@ def create_geo_file(nozzle_file, output_geo,l_convergent, lc_tuyere=0.0015, lc_c
         f.write("Field[4].IField = 3;\n")
         f.write(f"Field[4].LcMin = {lc_col};\n") # Deux fois plus fin au col
         f.write(f"Field[4].LcMax = {lc_domain};\n")
-        f.write("Field[4].DistMin = 0.1;\n")
-        f.write("Field[4].DistMax = 0.3;\n")
+        f.write("Field[4].DistMin = 0.15;\n")
+        f.write("Field[4].DistMax = 0.4;\n")
+
+        # Raffinement le long du jet
+        f.write("Field[6] = Box;\n")
+        f.write("Field[6].VIn = 0.008;\n")  # Très fin dans le jet
+        f.write("Field[6].VOut = 0.05;\n")
+        f.write(f"Field[6].XMin = {l_domain};\n")   # Commence après le col
+        f.write(f"Field[6].XMax = {l_outlet};\n")   # Jusqu'au bout du domaine
+        f.write(f"Field[6].YMin = 0;\n")
+        f.write(f"Field[6].YMax = 0.4;\n")
+
+        # Champ de Boundary Layer (Couches limites)
+        f.write("Field[7] = BoundaryLayer;\n")
+        f.write("Field[7].CurvesList = {1};\n") 
+        f.write(f"Field[7].PointsList = {{1, {len(points)}}};\n")
+        f.write(f"Field[7].FanPointsList = {{1, {len(points)}}};\n")
+        f.write("Field[7].Size = 0.0001;\n")    
+        f.write("Field[7].Ratio = 1.15;\n")     
+        f.write("Field[7].IntersectMetrics = 1;\n")
+        f.write("Field[7].Quads = 1;\n")       
+        f.write("Field[7].Thickness = 0.015;\n") 
+
+        f.write("BoundaryLayer Field = 7;\n\n")
 
         # 4. On prend le minimum de tous les raffinements
         f.write("Field[5] = Min;\n")
-        f.write("Field[5].FieldsList = {2, 4};\n")
+        f.write("Field[5].FieldsList = {2, 4, 6, 7};\n")
         f.write("Background Field = 5;\n\n")
+
 
         f.write("Mesh.Algorithm = 6;\n") # Frontal-Delaunay (très bon pour GNN)
 
         # Extruder pour OpenFOAM
         f.write("out[] = Extrude {0, 0, 0.1} {\n")
-        f.write("  Surface{1,2}; Layers{1}; Recombine;\n")
+        f.write("  Surface{1}; Layers{1}; Recombine;\n")
         f.write("};\n\n")
         
         # Groupes physiques
@@ -108,8 +132,8 @@ def run_gmsh(geo_file, msh_file):
     subprocess.run(cmd, check=True)
 
 if __name__ == "__main__":
-    nozzle_dat = "data/nozzle/nozzle_14211.dat"
+    nozzle_dat = "data/nozzle/nozzle_010302103.dat"
     geo_file = "data/mesh.geo"
     msh_file = "data/mesh.msh"
-    create_geo_file(nozzle_dat, geo_file,l_convergent=1, lc_tuyere=0.005, lc_col=0.002, lc_domain=0.1, l_domain=2.0, r_exit=4.0)
+    create_geo_file(nozzle_dat, geo_file,l_convergent=0.3, lc_tuyere=0.005, lc_col=0.003, lc_domain=0.05, l_domain=1.3, r_exit=1)
     run_gmsh(geo_file, msh_file)
