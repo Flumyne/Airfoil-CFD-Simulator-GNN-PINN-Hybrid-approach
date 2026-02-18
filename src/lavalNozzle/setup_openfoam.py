@@ -96,7 +96,7 @@ def setup_case(case_dir):
         "front": {"type": "empty"},
         "back": {"type": "empty"}
     }
-    generate_field_file(os.path.join(case_dir, "0/omega"), "volScalarField", "omega", "[0 0 -1 0 0 0 0]", "uniform 1000", omega_map)
+    generate_field_file(os.path.join(case_dir, "0/omega"), "volScalarField", "omega", "[0 0 -1 0 0 0 0]", "uniform 5000", omega_map)
 
     # Champ nut
     nut_map = {
@@ -321,6 +321,13 @@ limitU
     selectionMode   all;
     max             3000;
 }
+limitNut
+{
+    type            limitTurbulenceViscosity;
+    active          yes;
+    selectionMode   all;
+    max             1.0;
+}
 """)
 
 
@@ -348,7 +355,7 @@ endTime         0.003;
 deltaT          1e-7;          
 writeControl    adjustableRunTime;
 writeInterval   0.0002;         
-\\ purgeWrite      2;
+purgeWrite      1;
 writeFormat     ascii;
 writePrecision  6;
 adjustTimeStep  yes;          
