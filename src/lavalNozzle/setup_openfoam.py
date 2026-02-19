@@ -46,13 +46,13 @@ def setup_case(case_dir):
     # Champ U
     u_map = {
         "inlet": {"type": "pressureInletOutletVelocity", "value": "uniform (10 0 0)"},
-        "outlet": {"type": "pressureInletOutletVelocity", "value": "uniform (10 0 0)"},
-        "nozzle": {"type": "noSlip"},
+        "outlet": {"type": "pressureInletOutletVelocity", "value": "uniform (0 0 0)"},
+        "nozzle": {"type": "slip"},
         "symmetry": {"type": "symmetryPlane"},
         "front": {"type": "empty"},
         "back": {"type": "empty"}
     }
-    generate_field_file(os.path.join(case_dir, "0/U"), "volVectorField", "U", "[0 1 -1 0 0 0 0]", "uniform (10 0 0)", u_map)
+    generate_field_file(os.path.join(case_dir, "0/U"), "volVectorField", "U", "[0 1 -1 0 0 0 0]", "uniform (0 0 0)", u_map)
     
     # Champ p
     p_map = {
@@ -77,43 +77,13 @@ def setup_case(case_dir):
     generate_field_file(os.path.join(case_dir, "0/T"), "volScalarField", "T", "[0 0 0 1 0 0 0]", "uniform 1000", T_map)
     
     # Champ k
-    k_map = {
-        "inlet": {"type": "freestream", "freestreamValue": "$internalField"},
-        "outlet": {"type": "freestream", "freestreamValue": "$internalField"},
-        "nozzle": {"type": "kLowReWallFunction", "value": "uniform 1e-10"},
-        "symmetry": {"type": "symmetryPlane"},
-        "front": {"type": "empty"},
-        "back": {"type": "empty"}
-    }
-    generate_field_file(os.path.join(case_dir, "0/k"), "volScalarField", "k", "[0 2 -2 0 0 0 0]", "uniform 0.375", k_map)
+    # Pas de k, omega, nut en Laminaire
 
-    # Champ omega
-    omega_map = {
-        "inlet": {"type": "freestream", "freestreamValue": "$internalField"},
-        "outlet": {"type": "freestream", "freestreamValue": "$internalField"},
-        "nozzle": {"type": "omegaWallFunction", "value": "uniform 1e-10"},
-        "symmetry": {"type": "symmetryPlane"},
-        "front": {"type": "empty"},
-        "back": {"type": "empty"}
-    }
-    generate_field_file(os.path.join(case_dir, "0/omega"), "volScalarField", "omega", "[0 0 -1 0 0 0 0]", "uniform 5000", omega_map)
-
-    # Champ nut
-    nut_map = {
-        "inlet": {"type": "freestream", "freestreamValue": "$internalField"},
-        "outlet": {"type": "freestream", "freestreamValue": "$internalField"},
-        "symmetry": {"type": "symmetryPlane"},
-        "nozzle": {"type": "nutLowReWallFunction", "value": "uniform 0"},
-        "front": {"type": "empty"},
-        "back": {"type": "empty"}
-    }
-    generate_field_file(os.path.join(case_dir, "0/nut"), "volScalarField", "nut", "[0 2 -1 0 0 0 0]", "uniform 0", nut_map)
-
-    # Champ alphat
+    # Champ alphat (Calculé ou nul en laminaire)
     alphat_map = {
         "inlet": {"type": "calculated", "value": "uniform 0"},
         "outlet": {"type": "calculated", "value": "uniform 0"},
-        "nozzle": {"type": "compressible::alphatWallFunction", "value": "uniform 0"}, 
+        "nozzle": {"type": "calculated", "value": "uniform 0"},
         "symmetry": {"type": "symmetryPlane"},
         "front": {"type": "empty"},
         "back": {"type": "empty"}
@@ -152,13 +122,7 @@ FoamFile
     class       dictionary;
     object      turbulenceProperties;
 }
-simulationType          RAS;
-RAS
-{
-    RASModel            kOmegaSST;
-    turbulence          on;
-    printCoeffs         on;
-}
+simulationType          laminar;
 """)
 
     # ThermophysicalProperties
@@ -225,16 +189,14 @@ FoamFile
     object      fvSchemes;
 }
 ddtSchemes      { default Euler; }
-gradSchemes     { default Gauss linear; }
+gradSchemes     { default cellLimited Gauss linear 1; }
 divSchemes
 {
     default         none;
-    div(phi,U)      Gauss limitedLinear 1;
-    div(phi,e)      Gauss limitedLinear 1;
-    div(phi,K)      Gauss limitedLinear 1;
-    div(phi,k)      Gauss limitedLinear 1;
-    div(phi,omega)  Gauss limitedLinear 1;
-    div(phid,p)     Gauss limitedLinear 1;
+    div(phi,U)      Gauss upwind;
+    div(phi,e)      Gauss upwind;
+    div(phi,K)      Gauss upwind;
+    div(phid,p)     Gauss upwind;
     div(tauMC)      Gauss linear;
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
 }
@@ -250,10 +212,7 @@ interpolationSchemes
     reconstruct(T)  vanLeer;
 }
 snGradSchemes   { default corrected; }
-wallDist
-{
-    method meshWave;
-}
+
 """)
 
     # fvSolution
@@ -279,7 +238,7 @@ solvers
         solver          diagonal;
     }
 
-    "(U|e|k|omega|up|BCp).*"
+    "(U|e|up|BCp).*"
     {
         solver          smoothSolver;
         smoother        GaussSeidel;
@@ -311,22 +270,15 @@ limitTemp
     type            limitTemperature;
     active          yes;
     selectionMode   all;
-    min             200;  
-    max             4000;
+    min             10;  
+    max             5000;
 }
 limitU
 {
     type            limitVelocity;
     active          yes;
     selectionMode   all;
-    max             3000;
-}
-limitNut
-{
-    type            limitTurbulenceViscosity;
-    active          yes;
-    selectionMode   all;
-    max             1.0;
+    max             4000;
 }
 """)
 
@@ -351,15 +303,16 @@ application     rhoCentralFoam;
 startFrom       startTime;
 startTime       0;
 stopAt          endTime;
-endTime         0.003;          
-deltaT          1e-7;          
+endTime         0.006;          
+deltaT          1e-9;          
 writeControl    adjustableRunTime;
-writeInterval   0.0002;         
+writeInterval   0.001;         
 purgeWrite      1;
 writeFormat     ascii;
 writePrecision  6;
 adjustTimeStep  yes;          
-maxCo           0.3;           
+maxCo           0.5;
+maxDeltaT       1e-5;           
 
 functions
 {

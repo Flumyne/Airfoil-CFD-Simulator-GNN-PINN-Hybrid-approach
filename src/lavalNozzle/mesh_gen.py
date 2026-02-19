@@ -1,22 +1,52 @@
 import os
 import subprocess
 
-def create_geo_file(nozzle_file, output_geo,l_convergent, lc_tuyere=0.008, lc_col=0.005, lc_domain=0.15, l_domain=2.0, r_exit=4.0):
+def create_geo_file(nozzle_file, output_geo, l_convergent, lc_tuyere=None, lc_col=None, lc_domain=None, l_domain=2.0, R_exit=4.0):
     """
-    Crée un fichier Gmsh .geo avec raffinement local au bord d'attaque et bord de fuite.
+    Crée un fichier Gmsh .geo avec raffinement adaptatif à la géométrie.
+    Les paramètres de maillage sont calculés automatiquement si non fournis.
     """
     points = []
     with open(nozzle_file, 'r') as f:
         for line in f:
             points.append(list(map(float, line.split())))
     
+    # Extraire le rayon du col (minimum de y dans le profil)
+    R_throat = min(pt[1] for pt in points)
+    R_exit_geom = max(pt[1] for pt in points)
+    L_total = max(pt[0] for pt in points)
+    
+    # --- PARAMÈTRES ADAPTATIFS ---
+    # Taille de maille sur la paroi : ~R_throat / 12
+    if lc_tuyere is None:
+        lc_tuyere = max(0.003, R_throat / 12.0)
+    # Taille au col : plus fin (~R_throat / 20)
+    if lc_col is None:
+        lc_col = max(0.002, R_throat / 20.0)
+    # Taille dans le domaine lointain
+    if lc_domain is None:
+        lc_domain = max(0.05, L_total / 10.0)
+    
+    # BoundaryLayer adaptatif (plus conservateur pour éviter volumes négatifs)
+    bl_first_cell = max(0.0005, R_throat / 80.0)
+    bl_thickness = max(0.004, R_throat / 12.0)
+    bl_ratio = 1.15 # Ratio plus doux
+    
+    # Distances de raffinement
+    dist_min_wall = max(0.05, R_throat * 1.5)
+    dist_max_wall = max(0.1, R_throat * 3.0)
+    dist_min_throat = max(0.05, R_throat * 2.0)
+    dist_max_throat = max(0.15, R_throat * 5.0)
+    
+    print(f"  [Mesh] R_throat={R_throat:.4f} lc_tuyere={lc_tuyere:.4f} lc_col={lc_col:.4f} BL_size={bl_first_cell:.5f} BL_thick={bl_thickness:.4f}")
+    
     with open(output_geo, 'w') as f:
         f.write(f"lc_tuyere = {lc_tuyere};\n")
         f.write(f"lc_domain = {lc_domain};\n\n")
         f.write(f"l_domain = {l_domain};\n")
-        f.write(f"r_exit = {r_exit};\n\n")
         l_outlet = 2*l_domain
         f.write(f"l_outlet = {l_outlet};\n")
+        f.write(f"r_exit = {R_exit};\n\n")
         
         # Points de la tuyère 
         for i, (x, y) in enumerate(points):
@@ -40,14 +70,13 @@ def create_geo_file(nozzle_file, output_geo,l_convergent, lc_tuyere=0.008, lc_co
         f.write("Line(4) = {1002, 1003};\n")
         f.write("Line(5) = {1003, 1005};\n")
         f.write(f"Line(6) = {{1005, {len(points)}}};\n\n")
-        
 
         # Surface Domaine
         f.write("Curve Loop(1) = {3, 4, 5, 6, -1, 2};\n")
         f.write("Plane Surface(1) = {1};\n\n")
 
-        # 2. Identifier l'index du col (le point le plus proche de l_convergent)
-        throat_idx = 1 # Par défaut point 1
+        # Identifier l'index du col (le point le plus proche de l_convergent)
+        throat_idx = 1
         min_diff = float('inf')
         for i, pt in enumerate(points):
             diff = abs(pt[0] - l_convergent)
@@ -63,55 +92,45 @@ def create_geo_file(nozzle_file, output_geo,l_convergent, lc_tuyere=0.008, lc_co
         f.write("Field[1].CurvesList = {1};\n")
         f.write("Field[1].Sampling = 100;\n")
 
-        # 2. On définit une zone de maillage fin (lc_tuyere) proche de la paroi
+        # 2. Zone de maillage fin proche de la paroi
         f.write("Field[2] = Threshold;\n")
         f.write("Field[2].IField = 1;\n")
-        f.write(f"Field[2].LcMin = {lc_tuyere};\n")      # Taille au contact
-        f.write(f"Field[2].LcMax = {lc_domain};\n")      # Taille loin
-        f.write("Field[2].DistMin = 0.2;\n")            # Fin jusqu'à 15cm
-        f.write("Field[2].DistMax = 0.3;\n")             # Transition vers le gros maillage
+        f.write(f"Field[2].LcMin = {lc_tuyere};\n")
+        f.write(f"Field[2].LcMax = {lc_domain};\n")
+        f.write(f"Field[2].DistMin = {dist_min_wall};\n")
+        f.write(f"Field[2].DistMax = {dist_max_wall};\n")
 
-
-        # 3. On raffine spécifiquement le COL (Throat) pour capturer Mach 1
-        # On utilise le point du col (milieu du tableau points)
+        # 3. Raffinement spécifique au COL (Throat)
         f.write("Field[3] = Distance;\n")
         f.write(f"Field[3].NodesList = {{throat_idx}};\n") 
         f.write("Field[4] = Threshold;\n")
         f.write("Field[4].IField = 3;\n")
-        f.write(f"Field[4].LcMin = {lc_col};\n") # Deux fois plus fin au col
+        f.write(f"Field[4].LcMin = {lc_col};\n")
         f.write(f"Field[4].LcMax = {lc_domain};\n")
-        f.write("Field[4].DistMin = 0.2;\n")
-        f.write("Field[4].DistMax = 0.5;\n")
+        f.write(f"Field[4].DistMin = {dist_min_throat};\n")
+        f.write(f"Field[4].DistMax = {dist_max_throat};\n")
 
         # Raffinement le long du jet
+        jet_height = max(0.2, R_exit_geom * 1.5)
         f.write("Field[6] = Box;\n")
-        f.write("Field[6].VIn = 0.01;\n")  # Fin dans le jet (optimisé)
-        f.write("Field[6].VOut = 0.05;\n")
-        f.write(f"Field[6].XMin = {l_domain};\n")   # Commence après le col
-        f.write(f"Field[6].XMax = {l_outlet};\n")   # Jusqu'au bout du domaine
+        f.write(f"Field[6].VIn = {max(0.005, lc_tuyere * 1.5)};\n")
+        f.write(f"Field[6].VOut = {lc_domain * 0.5};\n")
+        f.write(f"Field[6].XMin = {l_domain};\n")
+        f.write(f"Field[6].XMax = {l_outlet};\n")
         f.write(f"Field[6].YMin = 0;\n")
-        f.write(f"Field[6].YMax = 0.4;\n")
+        f.write(f"Field[6].YMax = {jet_height};\n")
 
-        # Champ de Boundary Layer (Couches limites)
-        f.write("Field[7] = BoundaryLayer;\n")
-        f.write("Field[7].CurvesList = {1};\n") 
-        f.write(f"Field[7].PointsList = {{1,{len(points)}}};\n")
-        f.write(f"Field[7].FanPointsList = {{1,{len(points)}}};\n")
-        f.write("Field[7].Size = 0.0005;\n")    
-        f.write("Field[7].Ratio = 1.2;\n")     
-        f.write("Field[7].IntersectMetrics = 1;\n")
-        f.write("Field[7].Quads = 1;\n")       
-        f.write("Field[7].Thickness = 0.01;\n") 
-
-        f.write("BoundaryLayer Field = 7;\n\n")
-
-        # 4. On prend le minimum de tous les raffinements
+        # Couches limites (Désactivé pour Laminaire/Robustesse)
+        # f.write("Field[7] = BoundaryLayer;\n")
+        # f.write("Field[7].CurvesList = {1};\n") 
+        # ... (Boundary layer lines commented out)
+        
+        # Minimum de tous les raffinements (sans BL)
         f.write("Field[5] = Min;\n")
-        f.write("Field[5].FieldsList = {2, 4, 6};\n")
+        f.write("Field[5].FieldsList = {2, 4, 6};\n") # On retire 7 de la liste
         f.write("Background Field = 5;\n\n")
 
-
-        f.write("Mesh.Algorithm = 6;\n") # Frontal-Delaunay (très bon pour GNN)
+        f.write("Mesh.Algorithm = 6;\n") # Frontal-Delaunay
 
         # Extruder pour OpenFOAM
         f.write("out[] = Extrude {0, 0, 0.1} {\n")
@@ -135,5 +154,5 @@ if __name__ == "__main__":
     nozzle_dat = "data/nozzle/nozzle_010302103.dat"
     geo_file = "data/mesh.geo"
     msh_file = "data/mesh.msh"
-    create_geo_file(nozzle_dat, geo_file,l_convergent=0.3, lc_tuyere=0.008, lc_col=0.005, lc_domain=0.15, l_domain=1.3, r_exit=1)
+    create_geo_file(nozzle_dat, geo_file, l_convergent=0.3, l_domain=1.3, R_exit=1)
     run_gmsh(geo_file, msh_file)
