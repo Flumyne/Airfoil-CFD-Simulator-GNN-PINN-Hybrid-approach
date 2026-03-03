@@ -128,7 +128,7 @@ def run_simulation(R_throat, R_exit, R_inlet, L_divergent, L_convergent, sim_id)
 
 def main():
     # Cible TOTALE d'échantillons réussis/total
-    TARGET_TOTAL = 500
+    TARGET_TOTAL = 515
     
     # Fichier Dataset
     csv_file = "dataset_nozzle.csv"

@@ -119,15 +119,10 @@ def create_geo_file(nozzle_file, output_geo, l_convergent, lc_tuyere=None, lc_co
         f.write(f"Field[6].XMax = {l_outlet};\n")
         f.write(f"Field[6].YMin = 0;\n")
         f.write(f"Field[6].YMax = {jet_height};\n")
-
-        # Couches limites (Désactivé pour Laminaire/Robustesse)
-        # f.write("Field[7] = BoundaryLayer;\n")
-        # f.write("Field[7].CurvesList = {1};\n") 
-        # ... (Boundary layer lines commented out)
         
-        # Minimum de tous les raffinements (sans BL)
+        # Minimum de tous les raffinements
         f.write("Field[5] = Min;\n")
-        f.write("Field[5].FieldsList = {2, 4, 6};\n") # On retire 7 de la liste
+        f.write("Field[5].FieldsList = {2, 4, 6};\n")
         f.write("Background Field = 5;\n\n")
 
         f.write("Mesh.Algorithm = 6;\n") # Frontal-Delaunay
