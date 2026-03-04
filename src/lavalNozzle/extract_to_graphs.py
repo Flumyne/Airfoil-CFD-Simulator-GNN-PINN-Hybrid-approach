@@ -234,6 +234,7 @@ def process_case_to_graph(case_dir, output_file, df_global):
         else:
             p_ratio_val = 1.0
 
+        
         # --- Zone One-hot-encoding 0 = convergent, 1 = divergent, 2 = atmosphere---
         # pos[:, 0] est un tensor [N] → opérations vectorisées (pas de if scalaire)
         pos_x = pos[:, 0]  # tensor [N]
@@ -242,12 +243,14 @@ def process_case_to_graph(case_dir, output_file, df_global):
         mask_div  = (pos_x > L_conv) & (pos_x <= L_conv + L_div)
         mask_atm  = pos_x > (L_conv + L_div)
 
+        '''
         zone_labels = torch.zeros(pos_x.shape[0], dtype=torch.long)
         zone_labels[mask_conv] = 0
         zone_labels[mask_div]  = 1
         zone_labels[mask_atm]  = 2
 
         zone_type_one_hot = torch.nn.functional.one_hot(zone_labels, num_classes=3).float()  # [N, 3]
+        '''
 
         # --- X_normalisé par zone (convergent: -1→0, divergent: 0→1, atmo: 1→...) ---
         x_norm = torch.zeros(pos_x.shape[0], dtype=torch.float)
@@ -257,8 +260,8 @@ def process_case_to_graph(case_dir, output_file, df_global):
 
         x_norm = x_norm.view(-1, 1)  # [N, 1]
 
-        # Caractéristiques finales des nœuds (input_dim=11)
-        x_features = torch.cat([x_norm, type_one_hot, zone_type_one_hot, dist_to_wall, dist_to_symmetry], dim=1)
+        # Caractéristiques finales des nœuds (input_dim=8)
+        x_features = torch.cat([x_norm, type_one_hot, dist_to_wall, dist_to_symmetry], dim=1)
 
         # Récupération des conditions limites
         reader.set_active_time_value(0.0)

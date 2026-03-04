@@ -73,13 +73,20 @@ def compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y):
     else:
         loss_symmetry = torch.tensor(0.0, device=device)
 
-    # 4. OUTLET (TYPE 3) - Poussée, ISP, p_ratio, m_dot (espace normalisé global)
+    # 4. PARAMS (TYPE 3) - Poussée, ISP, p_ratio, m_dot (espace normalisé global)
 
     loss_thrust  = torch.nn.functional.l1_loss(pred_norm_global[:, 0], batch.global_params[:, 0])
     loss_isp     = torch.nn.functional.l1_loss(pred_norm_global[:, 1], batch.global_params[:, 1])
     loss_p_ratio = torch.nn.functional.l1_loss(pred_norm_global[:, 2], batch.global_params[:, 2])
     loss_mdot    = torch.nn.functional.l1_loss(pred_norm_global[:, 3], batch.global_params[:, 3])
-    loss_outlet = 0.25*loss_mdot + 0.25*loss_p_ratio + 0.25*loss_thrust + 0.25*loss_isp
+    loss_params = 0.25*loss_mdot + 0.25*loss_p_ratio + 0.25*loss_thrust + 0.25*loss_isp
+
+    # 5. OUTLET
+    mask_outlet = (batch.node_type == 3)
+    if mask_outlet.any():
+        loss_outlet = torch.nn.functional.l1_loss(pred_norm_local[mask_outlet, 0], batch.y[mask_outlet,0])
+    else:
+        loss_outlet = torch.tensor(0.0, device=device)
 
     # --- C. PERTE DE GRADIENT MACH ---
     pred_phys = normalizer_y.decode(pred_norm_local)
@@ -93,8 +100,8 @@ def compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y):
     grad_pred = mach_pred[dst] - mach_pred[src]
     grad_true = mach_true[dst] - mach_true[src] 
 
-    shock_mask_low = torch.abs(grad_true) < 0.05
-    shock_mask_medium = (torch.abs(grad_true) > 0.05) & (torch.abs(grad_true) < 0.3)
+    shock_mask_low = torch.abs(grad_true) < 0.1
+    shock_mask_medium = (torch.abs(grad_true) > 0.1) & (torch.abs(grad_true) < 0.4)
 
     if shock_mask_medium.any():
         loss_grad_shock_medium = torch.nn.functional.l1_loss(grad_pred[shock_mask_medium], grad_true[shock_mask_medium])
@@ -110,8 +117,8 @@ def compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y):
     
 
     # --- D. PERTE TOTAL ---
-    loss = (2.0 * loss_data) + (0.5 * loss_phy_inlet) + (1.0* loss_wall) + (1.0 * loss_symmetry) + (0.5 * loss_outlet) + (1.0 * loss_grad)
-    return loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad
+    loss = (2.0 * loss_data) + (0.5 * loss_phy_inlet) + (1.5* loss_wall) + (1.0 * loss_symmetry) + (0.5 * loss_outlet) + (0.8 * loss_grad) + (0.1*loss_params)
+    return loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad, loss_params
 
 
 def train():
@@ -189,10 +196,10 @@ def train():
     
     print(f"Train samples: {len(train_dataset)}, Val samples: {len(val_dataset)}")
 
-    model = NozzleGNN(input_dim=19, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)  
+    model = NozzleGNN(input_dim=16, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)  
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)  
-    epochs = 100
+    epochs = 150
     # Scheduler CosineAnnealingWarmRestarts
     scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=25, T_mult=2, eta_min=0.00005)
     
@@ -203,7 +210,7 @@ def train():
     
     # Système de reprise (Resume)
     start_epoch = 1
-    checkpoint_path = "nozzle_gnn_last_v26.pt"
+    checkpoint_path = "nozzle_gnn_last_v28.pt"
     if os.path.exists(checkpoint_path):
         print(f"Resuming from checkpoint: {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -226,7 +233,7 @@ def train():
 
             # Ajout du bruit (Uniquement colonnes 0,9, 10 : X_norm et distances)
             noise_std = 0.006
-            cols_idx = [0,9, 10]
+            cols_idx = [0,6, 7]
             
             x_noisy = batch.x.clone()
             noise = torch.randn(x_noisy.size(0), len(cols_idx), device=device) * noise_std
@@ -247,7 +254,7 @@ def train():
             optimizer.zero_grad()
             with autocast(device_type=device.type):
                 pred_norm_local, pred_norm_global = model(batch)
-                loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad = compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y)
+                loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad, loss_params = compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y)
             
             if scaler is not None:
                 scaler.scale(loss).backward()
@@ -272,7 +279,7 @@ def train():
             total_loss += loss.item()
             
             if (i + 1) % 10 == 0:
-                print(f"  Batch {i+1}/{len(train_loader)} | Loss: {loss.item():.6f} | Data Loss: {loss_data.item():.6f} | Wall Loss: {loss_wall.item():.6f} | Outlet Loss: {loss_outlet.item():.6f} | Inlet Loss: {loss_phy_inlet.item():.6f} | Sym Loss: {loss_symmetry.item():.6f} | Grad Loss: {loss_grad.item():.6f} ")
+                print(f"  Batch {i+1}/{len(train_loader)} | Loss: {loss.item():.6f} | Data Loss: {loss_data.item():.6f} | Wall Loss: {loss_wall.item():.6f} | Outlet Loss: {loss_outlet.item():.6f} | Inlet Loss: {loss_phy_inlet.item():.6f} | Sym Loss: {loss_symmetry.item():.6f} | Grad Loss: {loss_grad.item():.6f} | Params Loss: {loss_params.item():.6f} ")
             
         avg_train_loss = total_loss / len(train_loader)
         
@@ -295,7 +302,7 @@ def train():
                 
                 with autocast(device_type=device.type):
                     out_local, out_global = model(batch)
-                    loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad = compute_hybrid_loss(out_local, out_global, batch, normalizer_y)
+                    loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad, loss_params = compute_hybrid_loss(out_local, out_global, batch, normalizer_y)
                 val_loss += loss.item()
         
         avg_val_loss = val_loss / len(val_loader) if len(val_loader) > 0 else 0
@@ -309,7 +316,7 @@ def train():
         # Sauvegarder le meilleur modèle
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "nozzle_gnn_best_v26.pt")
+            torch.save(model.state_dict(), "nozzle_gnn_best_v28.pt")
             print(f"  --> Best model saved with Val Loss: {best_val_loss:.6f}")
         
         # Sauvegarder systématiquement le dernier état (checkpoint)
@@ -319,7 +326,7 @@ def train():
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
             'val_loss': avg_val_loss,
-        }, "nozzle_gnn_last_v26.pt")
+        }, "nozzle_gnn_last_v28.pt")
             
     print("Training finished!")
     # Après la fin de la boucle for epoch:
@@ -329,11 +336,11 @@ def train():
     plt.plot(val_losses, label='Val Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('GNN Nozzle Training Convergence (v26)')
+    plt.title('GNN Nozzle Training Convergence (v28)')
     plt.legend()
     plt.grid(True)
     plt.yscale('log') 
-    plt.savefig('learning_curve_nozzle_v26.png') 
+    plt.savefig('learning_curve_nozzle_v28.png') 
     plt.show() 
 
 if __name__ == "__main__":

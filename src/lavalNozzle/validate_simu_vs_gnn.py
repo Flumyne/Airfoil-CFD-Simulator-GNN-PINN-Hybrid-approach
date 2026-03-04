@@ -19,8 +19,8 @@ def validate(resolution=500):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     # --- 1. CHARGEMENT DU MODÈLE ---
-    model = NozzleGNN(input_dim=19, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)
-    model.load_state_dict(torch.load("nozzle_gnn_best_v26.pt", map_location=device))
+    model = NozzleGNN(input_dim=16, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)
+    model.load_state_dict(torch.load("nozzle_gnn_best_v28.pt", map_location=device))
     model.eval()
 
     # --- 2. RESTAURATION DES NORMALISEURS ---
@@ -195,7 +195,7 @@ def validate(resolution=500):
         ax_me.set_aspect('equal')
         plt.colorbar(im3, ax=ax_me, label="Mach Error")
         
-        field_output = f"data/nozzle/figures/nozzle_mach_comp_v26_{os.path.basename(graph_path).replace('.pt', '.png')}"
+        field_output = f"data/nozzle/figures/nozzle_mach_comp_v28_{os.path.basename(graph_path).replace('.pt', '.png')}"
         plt.tight_layout()
         fig2.savefig(field_output, dpi=200)
         print(f"Detailed field comparison saved : {field_output}")
@@ -246,7 +246,7 @@ def validate(resolution=500):
         ax_rad2.legend()
         ax_rad2.grid(True, alpha=0.3)
         
-        profile_output = f"data/nozzle/figures/nozzle_profiles_v26_{os.path.basename(graph_path).replace('.pt', '.png')}"
+        profile_output = f"data/nozzle/figures/nozzle_profiles_v28_{os.path.basename(graph_path).replace('.pt', '.png')}"
         plt.tight_layout()
         fig3.savefig(profile_output, dpi=200)
         print(f"1D profiles saved : {profile_output}")
