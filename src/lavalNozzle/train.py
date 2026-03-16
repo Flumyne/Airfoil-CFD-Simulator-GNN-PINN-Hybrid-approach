@@ -84,7 +84,7 @@ def compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y):
     # 5. OUTLET
     mask_outlet = (batch.node_type == 3)
     if mask_outlet.any():
-        loss_outlet = torch.nn.functional.l1_loss(pred_norm_local[mask_outlet, 0], batch.y[mask_outlet,0])
+        loss_outlet = torch.nn.functional.l1_loss(pred_norm_local[mask_outlet], batch.y[mask_outlet])
     else:
         loss_outlet = torch.tensor(0.0, device=device)
 
@@ -101,7 +101,7 @@ def compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y):
     grad_true = mach_true[dst] - mach_true[src] 
 
     shock_mask_low = torch.abs(grad_true) < 0.1
-    shock_mask_medium = (torch.abs(grad_true) > 0.1) & (torch.abs(grad_true) < 0.4)
+    shock_mask_medium = (torch.abs(grad_true) > 0.1) & (torch.abs(grad_true) < 0.5)
 
     if shock_mask_medium.any():
         loss_grad_shock_medium = torch.nn.functional.l1_loss(grad_pred[shock_mask_medium], grad_true[shock_mask_medium])
@@ -113,11 +113,11 @@ def compute_hybrid_loss(pred_norm_local, pred_norm_global, batch, normalizer_y):
     else:
         loss_grad_shock_low = torch.tensor(0.0, device=device)
 
-    loss_grad = 2* loss_grad_shock_low + loss_grad_shock_medium
+    loss_grad = 2*loss_grad_shock_low + 1*loss_grad_shock_medium 
     
 
     # --- D. PERTE TOTAL ---
-    loss = (2.0 * loss_data) + (0.5 * loss_phy_inlet) + (1.5* loss_wall) + (1.0 * loss_symmetry) + (0.5 * loss_outlet) + (0.8 * loss_grad) + (0.1*loss_params)
+    loss = (2.5 * loss_data) + (0.5 * loss_phy_inlet) + (1.5* loss_wall) + (1.0 * loss_symmetry) + (0.5 * loss_outlet) + (1.0 * loss_grad) + (0.1*loss_params)
     return loss, loss_data, loss_phy_inlet, loss_wall, loss_symmetry, loss_outlet, loss_grad, loss_params
 
 
@@ -196,7 +196,7 @@ def train():
     
     print(f"Train samples: {len(train_dataset)}, Val samples: {len(val_dataset)}")
 
-    model = NozzleGNN(input_dim=16, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)  
+    model = NozzleGNN(input_dim=21, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)  
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)  
     epochs = 150
@@ -210,7 +210,7 @@ def train():
     
     # Système de reprise (Resume)
     start_epoch = 1
-    checkpoint_path = "nozzle_gnn_last_v28.pt"
+    checkpoint_path = "nozzle_gnn_last_v33.pt"
     if os.path.exists(checkpoint_path):
         print(f"Resuming from checkpoint: {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -316,7 +316,7 @@ def train():
         # Sauvegarder le meilleur modèle
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
-            torch.save(model.state_dict(), "nozzle_gnn_best_v28.pt")
+            torch.save(model.state_dict(), "nozzle_gnn_best_v33.pt")
             print(f"  --> Best model saved with Val Loss: {best_val_loss:.6f}")
         
         # Sauvegarder systématiquement le dernier état (checkpoint)
@@ -326,7 +326,7 @@ def train():
             'optimizer_state_dict': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
             'val_loss': avg_val_loss,
-        }, "nozzle_gnn_last_v28.pt")
+        }, "nozzle_gnn_last_v33.pt")
             
     print("Training finished!")
     # Après la fin de la boucle for epoch:
@@ -336,11 +336,11 @@ def train():
     plt.plot(val_losses, label='Val Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title('GNN Nozzle Training Convergence (v28)')
+    plt.title('GNN Nozzle Training Convergence (v33)')
     plt.legend()
     plt.grid(True)
     plt.yscale('log') 
-    plt.savefig('learning_curve_nozzle_v28.png') 
+    plt.savefig('learning_curve_nozzle_v33.png') 
     plt.show() 
 
 if __name__ == "__main__":

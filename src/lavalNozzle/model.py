@@ -13,7 +13,7 @@ class GNSBlock(MessagePassing):
         super(GNSBlock, self).__init__(aggr='add') # Aggrégation par somme
         
         # MLP pour traiter le message (v_i + v_j + edge_attr)
-        self.edge_mlp = Seq(Linear(2 * hidden_dim + 5, hidden_dim), # +5 car edge_attr a 5 composantes (dx, dy, dist, n_x, n_y)
+        self.edge_mlp = Seq(Linear(2 * hidden_dim + 6, hidden_dim), # +6 car edge_attr a 6 composantes (dx, dy, dist, n_x, n_y, choc)
                             SiLU(),
                             Linear(hidden_dim, hidden_dim),
                             LayerNorm(hidden_dim))
@@ -40,7 +40,7 @@ class GNSBlock(MessagePassing):
         return x + self.node_mlp(tmp) # Connexion résiduelle (x + ...)
 
 class NozzleGNN(nn.Module):
-    def __init__(self, input_dim=16, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5): # input_dim = 8 variable + 8 constantes pas dans x
+    def __init__(self, input_dim=21, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5): # input_dim = 8 variable + 13 constantes pas dans x
         super(NozzleGNN, self).__init__()
 
         # 1. Encoder : Features physiques -> Espace Latent
@@ -72,7 +72,7 @@ class NozzleGNN(nn.Module):
     def forward(self, data):
         x, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
 
-        global_vars = torch.cat([data.case_params, data.bc_params], dim=1)
+        global_vars = torch.cat([data.case_params, data.bc_params, data.regime, data.shock_pos], dim=1)
 
         x = torch.cat([x, global_vars[batch]], dim=1)
 

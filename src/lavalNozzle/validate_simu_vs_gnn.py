@@ -19,8 +19,8 @@ def validate(resolution=500):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
     # --- 1. CHARGEMENT DU MODÈLE ---
-    model = NozzleGNN(input_dim=16, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)
-    model.load_state_dict(torch.load("nozzle_gnn_best_v28.pt", map_location=device))
+    model = NozzleGNN(input_dim=21, hidden_dim=64, output_dim_local=6, output_dim_global=4, num_layers=5).to(device)
+    model.load_state_dict(torch.load("nozzle_gnn_best_v33.pt", map_location=device))
     model.eval()
 
     # --- 2. RESTAURATION DES NORMALISEURS ---
@@ -130,123 +130,119 @@ def validate(resolution=500):
         print(f"Erreur Mach Moyenne : {np.mean(error_mach):.2f}")
         print(f"Erreur Mach Max     : {np.max(error_mach):.2f}")
         
-        # --- E. Tracer la comparaison des champs de Mach ---
-        fig2, (ax_mt, ax_mp, ax_me) = plt.subplots(3, 1, figsize=(12, 12))
-        
-        vmax_mach = 4.0
-        vmax_err_mach = 0.5 
+        # --- E. Tracer la comparaison des champs de Mach (Scatter Plot — points réels, sans interpolation) ---
+        fig2, axes = plt.subplots(3, 1, figsize=(14, 13))
+        ax_mt, ax_mp, ax_me = axes
 
-        # --- Interpolation sur une grille régulière ---
-        # 1. Création de la grille cible
-        y_max = r_outlet * 1.1
-        grid_x, grid_y = np.mgrid[-0.05:(x_exit+0.1):500j, -y_max:y_max:200j]
-        
-        # 2. Préparation des données miroirs pour l'interpolation
+        vmax_mach = 4.0
+        vmax_err_mach = 0.5
+        error_mach_scatter = np.abs(mach_pred - mach_true)
+
+        # Données miroir (symétrie axiale) pour afficher le demi-domaine bas
         pos_sym = pos_real.copy()
         pos_sym[:, 1] = -pos_real[:, 1]
-        
-        # Concaténation
-        points_all = np.concatenate((pos_real, pos_sym), axis=0)
-        mach_true_all = np.concatenate((mach_true, mach_true), axis=0)
-        mach_pred_all = np.concatenate((mach_pred, mach_pred), axis=0)
-        
-        # 3. Interpolation (Linear pour la précision des chocs)
-        grid_mach_true = griddata(points_all, mach_true_all, (grid_x, grid_y), method='linear', fill_value=0)
-        grid_mach_pred = griddata(points_all, mach_pred_all, (grid_x, grid_y), method='linear', fill_value=0)
-        
-        # Calcul de l'erreur sur la grille interpolée
-        grid_error = np.abs(grid_mach_true - grid_mach_pred)
+        pos_full = np.concatenate((pos_real, pos_sym), axis=0)
+        mach_true_full = np.concatenate((mach_true, mach_true), axis=0)
+        mach_pred_full = np.concatenate((mach_pred, mach_pred), axis=0)
+        error_full = np.concatenate((error_mach_scatter, error_mach_scatter), axis=0)
 
-        # 4. Créer un masque basé sur la distance aux points réels
-        # On utilise un KDTree pour trouver la distance grille -> points réels
+        # Taille des marqueurs : petite pour un rendu dense, sans recouvrement excessif
+        s = 1.5
 
-        tree = cKDTree(points_all)
-        # On aplatit la grille pour le calcul
-        grid_coords = np.c_[grid_x.ravel(), grid_y.ravel()]
-        dists, _ = tree.query(grid_coords)
-        
-        # Seuil de masquage (environ 1.5x la distance max entre points, soit ~0.05 - 0.1)
-        mask_threshold = 0.05
-        mask_void = dists > mask_threshold
-        
-        # Appliquer le masque (NaN pour que imshow ne dessine rien)
-        grid_mach_true.ravel()[mask_void] = np.nan
-        grid_mach_pred.ravel()[mask_void] = np.nan
-        grid_error.ravel()[mask_void] = np.nan
-        
-        # --- Affichage (Pcolormesh) ---
-        extent = (-0.05, x_exit+0.1, -y_max, y_max)
-        
-        # Champ Vérité
-        im1 = ax_mt.imshow(grid_mach_true.T, extent=extent, origin='lower', cmap='jet', vmin=0, vmax=vmax_mach)
-        ax_mt.set_title(f"Mach Number - OpenFOAM (Truth)")
+        sc1 = ax_mt.scatter(pos_full[:, 0], pos_full[:, 1], c=mach_true_full,
+                            cmap='jet', vmin=0, vmax=vmax_mach, s=s, linewidths=0)
+        ax_mt.set_title("Mach Number — OpenFOAM (Truth) · Points réels")
+        ax_mt.set_xlabel("X (m)")
+        ax_mt.set_ylabel("Y (m)")
         ax_mt.set_aspect('equal')
-        plt.colorbar(im1, ax=ax_mt, label="Mach")
-        
-        # Champ GNN
-        im2 = ax_mp.imshow(grid_mach_pred.T, extent=extent, origin='lower', cmap='jet', vmin=0, vmax=vmax_mach)
-        ax_mp.set_title(f"Mach Number - GNN Prediction")
+        plt.colorbar(sc1, ax=ax_mt, label="Mach")
+
+        sc2 = ax_mp.scatter(pos_full[:, 0], pos_full[:, 1], c=mach_pred_full,
+                            cmap='jet', vmin=0, vmax=vmax_mach, s=s, linewidths=0)
+        ax_mp.set_title("Mach Number — GNN Prediction · Points réels")
+        ax_mp.set_xlabel("X (m)")
+        ax_mp.set_ylabel("Y (m)")
         ax_mp.set_aspect('equal')
-        plt.colorbar(im2, ax=ax_mp, label="Mach")
-        
-        # Champ Erreur
-        im3 = ax_me.imshow(grid_error.T, extent=extent, origin='lower', cmap='hot', vmin=0, vmax=vmax_err_mach)
-        ax_me.set_title(f"Absolute Error Map (Interpolated)")
+        plt.colorbar(sc2, ax=ax_mp, label="Mach")
+
+        sc3 = ax_me.scatter(pos_full[:, 0], pos_full[:, 1], c=error_full,
+                            cmap='hot', vmin=0, vmax=vmax_err_mach, s=s, linewidths=0)
+        ax_me.set_title("Absolute Error |GNN − CFD| · Points réels")
+        ax_me.set_xlabel("X (m)")
+        ax_me.set_ylabel("Y (m)")
         ax_me.set_aspect('equal')
-        plt.colorbar(im3, ax=ax_me, label="Mach Error")
-        
-        field_output = f"data/nozzle/figures/nozzle_mach_comp_v28_{os.path.basename(graph_path).replace('.pt', '.png')}"
+        plt.colorbar(sc3, ax=ax_me, label="|ΔMach|")
+
+        field_output = f"data/nozzle/figures/nozzle_mach_comp_v33_{os.path.basename(graph_path).replace('.pt', '.png')}"
         plt.tight_layout()
         fig2.savefig(field_output, dpi=200)
         print(f"Detailed field comparison saved : {field_output}")
         plt.close(fig2)
 
-        # --- F. Profils 1D (Radiaux et Axiaux) ---
+        # --- F. Profils 1D — extraction KDTree + binage (lissage sans interpolation) ---
         fig3, (ax_long, ax_rad1, ax_rad2) = plt.subplots(3, 1, figsize=(10, 15))
-        
-        # 1. Profil Longitudinal (Axe de symétrie Y=0)
-        # On cherche l'indice de la grille y qui est le plus proche de 0
-        idx_y0 = np.argmin(np.abs(grid_y[0, :]))
-        x_line = grid_x[:, idx_y0]
-        mach_true_long = grid_mach_true[:, idx_y0]
-        mach_pred_long = grid_mach_pred[:, idx_y0]
-        
-        ax_long.plot(x_line, mach_true_long, 'k-', linewidth=2, label='OpenFOAM (Centerline)')
-        ax_long.plot(x_line, mach_pred_long, 'r--', linewidth=2, label='GNN (Centerline)')
-        ax_long.set_title(f"Profil de Mach sur l'axe de symétrie (Y=0) - {os.path.basename(graph_path)}")
-        ax_long.set_xlabel("X (m)")
-        ax_long.set_ylabel("Mach")
-        ax_long.legend()
-        ax_long.grid(True, alpha=0.3)
-        
-        # 2. Profil Radial au Col (X = L_conv)
-        idx_x_col = np.argmin(np.abs(grid_x[:, 0] - L_conv))
-        y_line = grid_y[idx_x_col, :]
-        mach_true_rad_col = grid_mach_true[idx_x_col, :]
-        mach_pred_rad_col = grid_mach_pred[idx_x_col, :]
-        
-        ax_rad1.plot(y_line, mach_true_rad_col, 'k-', linewidth=2, label='OpenFOAM (Throat)')
-        ax_rad1.plot(y_line, mach_pred_rad_col, 'r--', linewidth=2, label='GNN (Throat)')
-        ax_rad1.set_title(f"Profil Radial au Col (X = {L_conv:.2f}m)")
-        ax_rad1.set_xlabel("Y (m)")
-        ax_rad1.set_ylabel("Mach")
-        ax_rad1.legend()
-        ax_rad1.grid(True, alpha=0.3)
-        
-        # 3. Profil Radial à la Sortie (X = L_conv + L_div)
-        idx_x_exit = np.argmin(np.abs(grid_x[:, 0] - (L_conv + L_div)))
-        mach_true_rad_exit = grid_mach_true[idx_x_exit, :]
-        mach_pred_rad_exit = grid_mach_pred[idx_x_exit, :]
-        
-        ax_rad2.plot(y_line, mach_true_rad_exit, 'k-', linewidth=2, label='OpenFOAM (Exit)')
-        ax_rad2.plot(y_line, mach_pred_rad_exit, 'r--', linewidth=2, label='GNN (Exit)')
-        ax_rad2.set_title(f"Profil Radial à la Sortie (X = {(L_conv + L_div):.2f}m)")
-        ax_rad2.set_xlabel("Y (m)")
-        ax_rad2.set_ylabel("Mach")
-        ax_rad2.legend()
-        ax_rad2.grid(True, alpha=0.3)
-        
-        profile_output = f"data/nozzle/figures/nozzle_profiles_v28_{os.path.basename(graph_path).replace('.pt', '.png')}"
+        tree_real = cKDTree(pos_real)
+
+        def extract_profile_binned(coord_vals, field_true, field_pred, n_bins=120):
+            """Bine les points par coord, moyenne dans chaque bin → courbe lisse sans zigzag."""
+            sort_idx = np.argsort(coord_vals)
+            cv = coord_vals[sort_idx]; ft = field_true[sort_idx]; fp = field_pred[sort_idx]
+            bins = np.linspace(cv.min(), cv.max(), n_bins + 1)
+            bin_idx = np.clip(np.digitize(cv, bins) - 1, 0, n_bins - 1)
+            coord_b, true_b, pred_b = [], [], []
+            for b in range(n_bins):
+                mb = bin_idx == b
+                if mb.sum() > 0:
+                    coord_b.append(cv[mb].mean())
+                    true_b.append(ft[mb].mean())
+                    pred_b.append(fp[mb].mean())
+            return np.array(coord_b), np.array(true_b), np.array(pred_b)
+
+        # ── 1. Profil longitudinal (axe Y = 0) ──
+        x_query = np.linspace(pos_real[:, 0].min(), pos_real[:, 0].max(), 600)
+        query_axis = np.column_stack([x_query, np.zeros(600)])
+        dists_a, idx_a = tree_real.query(query_axis)
+        res_a = (pos_real[:, 0].max() - pos_real[:, 0].min()) / 600
+        valid_a = dists_a < 6 * res_a
+        if valid_a.sum() > 5:
+            x_b, mt_b, mp_b = extract_profile_binned(
+                pos_real[idx_a[valid_a], 0], mach_true[idx_a[valid_a]], mach_pred[idx_a[valid_a]], n_bins=200)
+            ax_long.plot(x_b, mt_b, 'k-', linewidth=2, label='OpenFOAM (Centerline)')
+            ax_long.plot(x_b, mp_b, 'r--', linewidth=2, label='GNN (Centerline)')
+        else:
+            ax_long.text(0.5, 0.5, "Pas assez de points sur l'axe", ha='center', transform=ax_long.transAxes)
+        ax_long.set_title(f"Profil de Mach sur l'axe (Y≈0) — {os.path.basename(graph_path)}")
+        ax_long.set_xlabel("X (m)"); ax_long.set_ylabel("Mach")
+        ax_long.legend(); ax_long.grid(True, alpha=0.3)
+
+        # ── Fonction profil radial réutilisable ──
+        def radial_profile(ax, x_target, label_foam, label_gnn, title):
+            y_max_loc = pos_real[:, 1].max()
+            y_query = np.linspace(0, y_max_loc, 400)
+            query_rad = np.column_stack([np.full(400, x_target), y_query])
+            dists_r, idx_r = tree_real.query(query_rad)
+            res_r = y_max_loc / 400
+            valid_r = dists_r < 6 * res_r
+            if valid_r.sum() > 5:
+                y_b, mt_b, mp_b = extract_profile_binned(
+                    pos_real[idx_r[valid_r], 1], mach_true[idx_r[valid_r]], mach_pred[idx_r[valid_r]], n_bins=100)
+                ax.plot(y_b, mt_b, 'k-', linewidth=2, label=label_foam)
+                ax.plot(y_b, mp_b, 'r--', linewidth=2, label=label_gnn)
+            else:
+                ax.text(0.5, 0.5, "Pas assez de points", ha='center', transform=ax.transAxes)
+            ax.set_title(title); ax.set_xlabel("Y (m)"); ax.set_ylabel("Mach")
+            ax.legend(); ax.grid(True, alpha=0.3)
+
+        # ── 2. Col ──
+        radial_profile(ax_rad1, L_conv,
+                       'OpenFOAM (Throat)', 'GNN (Throat)',
+                       f"Profil Radial au Col (X = {L_conv:.2f}m)")
+        # ── 3. Sortie ──
+        radial_profile(ax_rad2, L_conv + L_div,
+                       'OpenFOAM (Exit)', 'GNN (Exit)',
+                       f"Profil Radial à la Sortie (X = {L_conv + L_div:.2f}m)")
+
+        profile_output = f"data/nozzle/figures/nozzle_profiles_v33_{os.path.basename(graph_path).replace('.pt', '.png')}"
         plt.tight_layout()
         fig3.savefig(profile_output, dpi=200)
         print(f"1D profiles saved : {profile_output}")
