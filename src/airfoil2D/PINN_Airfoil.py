@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from generate_naca import generate_naca4
 from shapely.geometry import Point, Polygon
+import argparse
+import pyvista as pv
+import os 
 
 # Inspired by "Physics-informed deep learning for simultaneous surrogate modeling and PDE-constrained optimization of an airfoil geometry"
 # Yubiao Sun, Ushnish Sengupta, Matthew Juniper
@@ -32,8 +35,43 @@ class Normalizer:
         self.std = self.std.cuda()
         return self    
 
+# --- 2. PINN Architecture (MLP with SiLU) ---
+hidden_layer = 128 
 
-def calc_loss(x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side):
+class PINN(nn.Module):
+    def __init__(self):
+        super(PINN, self).__init__()
+        self.register_buffer('mu', torch.zeros(2))
+        self.register_buffer('sigma', torch.ones(2))
+        self.net = nn.Sequential(
+            nn.Linear(2, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, hidden_layer),
+            nn.SiLU(),
+            nn.Linear(hidden_layer, 3)
+        )
+
+    def forward(self, x, y):
+        # Concatenate x and y for the network input
+        inputs = torch.cat([x, y], dim=1)
+        inputs_norm = (inputs - self.mu) / self.sigma
+        return self.net(inputs_norm)
+
+def calc_loss(x_col, y_col, x_bc, y_bc, x_airfoil, y_airfoil, u_bc, v_bc, p_bc, rho, mu, mask_side, model):
     
     # --- 1. Loss PDE (Physics) ---
     out = model(x_col, y_col)
@@ -110,34 +148,22 @@ def calc_loss(x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side):
     loss = 10*loss_pde + 5*loss_wall_top + 5*loss_wall_bot + 10*loss_inlet + 2*loss_outlet + 20*loss_wall_airfoil
     return loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil
 
-
-# Configuration for reproducibility
-torch.manual_seed(42)
-np.random.seed(42)
-
-# Use GPU if available, otherwise CPU
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Training on: {device}")
-
 # --- 1. Data Generation (Collocation, Boundary, and Sparse Data) ---
-x_brut,y_brut = generate_naca4(2,4,12,2000)
-x_airfoil,y_airfoil = x_brut, y_brut
-surface = Polygon(np.column_stack((x_airfoil, y_airfoil)))
+def generate_airfoil(m,p,t, device) :
+    x_airfoil,y_airfoil = generate_naca4(m,p,t,2000)
+    surface = Polygon(np.column_stack((x_airfoil, y_airfoil)))
 
-x_airfoil = torch.tensor(x_airfoil, dtype=torch.float32).to(device).view(-1,1)
-y_airfoil = torch.tensor(y_airfoil, dtype=torch.float32).to(device).view(-1,1)
+    x_airfoil = torch.tensor(x_airfoil, dtype=torch.float32).to(device).view(-1,1)
+    y_airfoil = torch.tensor(y_airfoil, dtype=torch.float32).to(device).view(-1,1)
 
-x_max_local = 1.1
-x_min_local = -0.1
-y_max_local = 0.2
-y_min_local = -0.2
+    return x_airfoil, y_airfoil
 
-x_max = 2.0
-x_min = -1
-y_max = 1
-y_min = -1
+def data_generation(x_airfoil, y_airfoil, batch_size, device):
 
-def data_generation(batch_size = 10000):
+    x_max_local = x_airfoil.max() + 0.1
+    x_min_local = x_airfoil.min() - 0.1
+    y_max_local = y_airfoil.max() + 0.1
+    y_min_local = y_airfoil.min() - 0.1
 
     # 1. Collocation Points (Physics Loss): Random points inside the domain
     num_collocation_global = batch_size
@@ -191,235 +217,360 @@ def data_generation(batch_size = 10000):
 
     return x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side
 
-x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side = data_generation(18000)
-x_cat = torch.cat([x_col,y_col], dim=1).to(device)
-x_norm = Normalizer(x_cat, device=device)
+def train(x_airfoil, y_airfoil, rho, mu, batch_size, device):
+    x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side = data_generation(x_airfoil, y_airfoil, batch_size, device)
+    x_cat = torch.cat([x_col,y_col], dim=1).to(device)
+    x_norm = Normalizer(x_cat, device=device)
+    model = PINN().to(device)
 
-# --- 2. PINN Architecture (MLP with SiLU) ---
-hidden_layer = 128 
+    with torch.no_grad(): 
+        model.mu.copy_(x_norm.mean)
+        model.sigma.copy_(x_norm.std)
 
-class PINN(nn.Module):
-    def __init__(self):
-        super(PINN, self).__init__()
-        self.register_buffer('mu', x_norm.mean)
-        self.register_buffer('sigma', x_norm.std)
-        self.net = nn.Sequential(
-            nn.Linear(2, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, hidden_layer),
-            nn.SiLU(),
-            nn.Linear(hidden_layer, 3)
-        )
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.002)
+    optimizer2 = torch.optim.LBFGS(model.parameters(), max_iter=20, history_size=20)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.5, patience=100)
 
-    def forward(self, x, y):
-        # Concatenate x and y for the network input
-        inputs = torch.cat([x, y], dim=1)
-        inputs_norm = (inputs - self.mu) / self.sigma
-        return self.net(inputs_norm)
+    # --- 4. Training Loop and Loss Function ---
 
-model = PINN().to(device)
-optimizer = torch.optim.AdamW(model.parameters(), lr=0.002)
-optimizer2 = torch.optim.LBFGS(model.parameters(), max_iter=20, history_size=20)
-scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", factor=0.5, patience=100)
-
-# --- 4. Training Loop and Loss Function ---
-
-epochs = 3001
-loss_history = []
-loss_stop = []
-loss_pde_history = []
-loss_inlet_history = []
-loss_outlet_history = []
-loss_airfoil_history = []
-loss_top_bottom_history = []
-rho = 1.0
-mu = 0.01
-
-print("Starting training...")
-
-for epoch in range(epochs):
-    optimizer.zero_grad()
-
-    x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side = data_generation(18000)
-    
-    loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil = calc_loss(x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side)
-    
-    loss.backward()
-    optimizer.step()
-    scheduler.step(loss.detach())
-    
-    loss_history.append(loss.item())
-    loss_pde_history.append(loss_pde.item())
-    loss_airfoil_history.append(loss_wall_airfoil.item())
-    loss_inlet_history.append(loss_inlet.item())
-    loss_outlet_history.append(loss_outlet.item())
-    loss_top_bottom_history.append(loss_wall_top.item() + loss_wall_bot.item())
-    
-    if epoch % 250 == 0:
-        loss_stop.append(loss.item())
-        print(f"Epoch {epoch}/{epochs} | Loss_Total: {loss.item():.5f} (PDE: {loss_pde:.5f}, Inlet: {loss_inlet:.5f}, Outlet: {loss_outlet:.5f}, Top: {loss_wall_top:.5f}, Bot: {loss_wall_bot:.5f}, Airfoil: {loss_wall_airfoil:.5f})")
-        if len(loss_stop) > 1:
-            if abs(loss_stop[-1] - loss_stop[-2]) < 1e-5:
-                print("Loss stabilize, training finished !")
-                break      
-
-print("1St Training finished.")
-
-del optimizer
-torch.cuda.empty_cache()
-x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side = data_generation(10000)
+    epochs = 3001
+    loss_history = []
+    loss_stop = []
+    loss_pde_history = []
+    loss_inlet_history = []
+    loss_outlet_history = []
+    loss_airfoil_history = []
+    loss_top_bottom_history = []
 
 
-for epoch2 in range(201):
-    def closure() :
-        optimizer2.zero_grad()
-        loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil = calc_loss(x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side)
+    print("Starting training...")
+
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+
+        x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side = data_generation(x_airfoil, y_airfoil, batch_size, device)
+        
+        loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil = calc_loss(x_col, y_col, x_bc, y_bc, x_airfoil, y_airfoil, u_bc, v_bc, p_bc, rho, mu, mask_side, model)
+        
         loss.backward()
-        return loss
+        optimizer.step()
+        scheduler.step(loss.detach())
+        
+        loss_history.append(loss.item())
+        loss_pde_history.append(loss_pde.item())
+        loss_airfoil_history.append(loss_wall_airfoil.item())
+        loss_inlet_history.append(loss_inlet.item())
+        loss_outlet_history.append(loss_outlet.item())
+        loss_top_bottom_history.append(loss_wall_top.item() + loss_wall_bot.item())
+        
+        if epoch % 250 == 0:
+            loss_stop.append(loss.item())
+            print(f"Epoch {epoch}/{epochs} | Loss_Total: {loss.item():.5f} (PDE: {loss_pde:.5f}, Inlet: {loss_inlet:.5f}, Outlet: {loss_outlet:.5f}, Top: {loss_wall_top:.5f}, Bot: {loss_wall_bot:.5f}, Airfoil: {loss_wall_airfoil:.5f})")
+            if len(loss_stop) > 1:
+                if abs(loss_stop[-1] - loss_stop[-2]) < 1e-5:
+                    print("Loss stabilize, training finished !")
+                    break      
 
-    optimizer2.step(closure)
+    print("1St Training finished.")
 
-    loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil = calc_loss(x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side)
-    loss_history.append(loss.item())
-    loss_pde_history.append(loss_pde.item())
-    loss_airfoil_history.append(loss_wall_airfoil.item())
-    loss_inlet_history.append(loss_inlet.item())
-    loss_outlet_history.append(loss_outlet.item())
-    loss_top_bottom_history.append(loss_wall_top.item() + loss_wall_bot.item())
-    
-    if epoch2 % 50 == 0:
-        loss_stop.append(loss.item())
-        print(f"Epoch {epoch2}/{200} | Loss_Total: {loss.item():.5f} (PDE: {loss_pde:.5f}, Inlet: {loss_inlet:.5f}, Outlet: {loss_outlet:.5f}, Top: {loss_wall_top:.5f}, Bot: {loss_wall_bot:.5f}, Airfoil: {loss_wall_airfoil:.5f})")
-        if len(loss_stop) > 1:
-            if abs(loss_stop[-1] - loss_stop[-2]) < 1e-5:
-                print("Loss stabilize, training finished !")
-                break      
-
-print("2nd Training finished.")
+    del optimizer
+    torch.cuda.empty_cache()
+    batch_size = 10000
+    x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, mask_side = data_generation(x_airfoil, y_airfoil, batch_size, device)
 
 
-torch.save(model.state_dict(), "pinn_airfoil_model.pth")
-print("Modèle enregistré avec succès !")
+    for epoch2 in range(201):
+        def closure() :
+            optimizer2.zero_grad()
+            loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil = calc_loss(x_col, y_col, x_bc, y_bc, x_airfoil, y_airfoil, u_bc, v_bc, p_bc, rho, mu, mask_side, model)
+            loss.backward()
+            return loss
 
+        optimizer2.step(closure)
+
+        loss, loss_pde, loss_inlet, loss_outlet, loss_wall_top, loss_wall_bot, loss_wall_airfoil = calc_loss(x_col, y_col, x_bc, y_bc, x_airfoil, y_airfoil, u_bc, v_bc, p_bc, rho, mu, mask_side, model)
+        loss_history.append(loss.item())
+        loss_pde_history.append(loss_pde.item())
+        loss_airfoil_history.append(loss_wall_airfoil.item())
+        loss_inlet_history.append(loss_inlet.item())
+        loss_outlet_history.append(loss_outlet.item())
+        loss_top_bottom_history.append(loss_wall_top.item() + loss_wall_bot.item())
+        
+        if epoch2 % 50 == 0:
+            loss_stop.append(loss.item())
+            print(f"Epoch {epoch2}/{200} | Loss_Total: {loss.item():.5f} (PDE: {loss_pde:.5f}, Inlet: {loss_inlet:.5f}, Outlet: {loss_outlet:.5f}, Top: {loss_wall_top:.5f}, Bot: {loss_wall_bot:.5f}, Airfoil: {loss_wall_airfoil:.5f})")
+            if len(loss_stop) > 1:
+                if abs(loss_stop[-1] - loss_stop[-2]) < 1e-5:
+                    print("Loss stabilize, training finished !")
+                    break      
+
+    print("2nd Training finished.")
+
+
+    torch.save(model.state_dict(), "pinn_airfoil_model.pth")
+    print("Modèle enregistré avec succès !")
+
+    visualize_loss(loss_history, loss_pde_history, loss_inlet_history, loss_outlet_history, loss_top_bottom_history, loss_airfoil_history)
 
 # --- 5. Results and Visualization (Super-Resolution Proof) ---
+def visualize_loss(loss_history, loss_pde_history, loss_inlet_history, loss_outlet_history, loss_top_bottom_history, loss_airfoil_history):
 
-fig_res, axes_res = plt.subplots(3, 2, figsize=(12, 8))
+    fig_res, axes_res = plt.subplots(3, 2, figsize=(12, 8))
 
-axes_res[0,0].plot(loss_history)
-axes_res[0,0].set_title(f"Total Loss")
-axes_res[0,0].set_yscale('log')
+    axes_res[0,0].plot(loss_history)
+    axes_res[0,0].set_title(f"Total Loss")
+    axes_res[0,0].set_yscale('log')
 
-axes_res[1,0].plot(loss_pde_history)
-axes_res[1,0].set_title(f"PDE")
-axes_res[1,0].set_yscale('log')
+    axes_res[1,0].plot(loss_pde_history)
+    axes_res[1,0].set_title(f"PDE")
+    axes_res[1,0].set_yscale('log')
 
-axes_res[2,0].plot(loss_inlet_history)
-axes_res[2,0].set_title(f"Inlet")
-axes_res[2,0].set_yscale('log')
+    axes_res[2,0].plot(loss_inlet_history)
+    axes_res[2,0].set_title(f"Inlet")
+    axes_res[2,0].set_yscale('log')
 
-axes_res[0,1].plot(loss_outlet_history)
-axes_res[0,1].set_title(f"Outlet")
-axes_res[0,1].set_yscale('log')
+    axes_res[0,1].plot(loss_outlet_history)
+    axes_res[0,1].set_title(f"Outlet")
+    axes_res[0,1].set_yscale('log')
 
-axes_res[1,1].plot(loss_top_bottom_history)
-axes_res[1,1].set_title(f"Top and Bottom Wall")
-axes_res[1,1].set_yscale('log')
+    axes_res[1,1].plot(loss_top_bottom_history)
+    axes_res[1,1].set_title(f"Top and Bottom Wall")
+    axes_res[1,1].set_yscale('log')
 
-axes_res[2,1].plot(loss_airfoil_history)
-axes_res[2,1].set_title(f"Airfoil Surface")
-axes_res[2,1].set_yscale('log')
+    axes_res[2,1].plot(loss_airfoil_history)
+    axes_res[2,1].set_title(f"Airfoil Surface")
+    axes_res[2,1].set_yscale('log')
 
-plt.tight_layout()
-plt.savefig("Residual_PINN.png", dpi=150, bbox_inches='tight')
+    plt.tight_layout()
+    plt.savefig("Residual_PINN.png", dpi=150, bbox_inches='tight')
 
-# Grid for global visualization
-grid_size = 512
-x_grid = np.linspace(x_min, x_max, grid_size)
-y_grid = np.linspace(y_min, y_max, grid_size)
-X, Y = np.meshgrid(x_grid, y_grid)
+def visualise_field(model, x_min, x_max, y_min, y_max, x_airfoil, y_airfoil, grid_size, device):
+    # Grid for global visualization
+    x_grid = np.linspace(x_min, x_max, grid_size)
+    y_grid = np.linspace(y_min, y_max, grid_size)
+    X, Y = np.meshgrid(x_grid, y_grid)
 
-# Convert to tensors for prediction
-x_test = torch.tensor(X.flatten()[:, None], dtype=torch.float32).to(device)
-y_test = torch.tensor(Y.flatten()[:, None], dtype=torch.float32).to(device)
+    # Convert to tensors for prediction
+    x_test = torch.tensor(X.flatten()[:, None], dtype=torch.float32).to(device)
+    y_test = torch.tensor(Y.flatten()[:, None], dtype=torch.float32).to(device)
 
-x_test_np =  x_test.detach().cpu().numpy()
-y_test_np =  y_test.detach().cpu().numpy()
+    x_test_np =  x_test.detach().cpu().numpy()
+    y_test_np =  y_test.detach().cpu().numpy()
 
-# Prediction
-model.eval()
-with torch.no_grad():
-    out = model(x_test, y_test).cpu().numpy()
-    u_pred = out[:,0:1].reshape(grid_size,grid_size)
-    v_pred = out[:,1:2].reshape(grid_size,grid_size)
-    p_pred = out[:,2:3].reshape(grid_size,grid_size)
-    u_min = u_pred.min()
-    u_max = u_pred.max()
-    v_min = v_pred.min()
-    v_max = v_pred.max()
-    p_min = p_pred.min()
-    p_max = p_pred.max()
-    # Logique de masquage
-    mask_grid = np.array([surface.contains(Point(x, y)) for x, y in zip(x_test_np, y_test_np)])
-    u_pred_masked = u_pred.copy()
-    u_pred_masked[mask_grid.reshape(grid_size, grid_size)] = np.nan
+    surface = Polygon(np.column_stack((x_airfoil.cpu().numpy(), y_airfoil.cpu().numpy())))
 
-    v_pred_masked = v_pred.copy()
-    v_pred_masked[mask_grid.reshape(grid_size, grid_size)] = np.nan
+    # Prediction
+    model.eval()
+    with torch.no_grad():
+        out = model(x_test, y_test).cpu().numpy()
+        u_pred = out[:,0:1].reshape(grid_size,grid_size)
+        v_pred = out[:,1:2].reshape(grid_size,grid_size)
+        p_pred = out[:,2:3].reshape(grid_size,grid_size)
 
-    p_pred_masked = p_pred.copy()
-    p_pred_masked[mask_grid.reshape(grid_size, grid_size)] = np.nan
+        # Logique de masquage
+        mask_grid = np.array([surface.contains(Point(x, y)) for x, y in zip(x_test_np, y_test_np)])
+        u_pred_masked = u_pred.copy()
+        u_pred_masked[mask_grid.reshape(grid_size, grid_size)] = np.nan
 
-# --- Plotting ---
+        v_pred_masked = v_pred.copy()
+        v_pred_masked[mask_grid.reshape(grid_size, grid_size)] = np.nan
+
+        p_pred_masked = p_pred.copy()
+        p_pred_masked[mask_grid.reshape(grid_size, grid_size)] = np.nan
+
+        u_optimum = u_pred_masked[~np.isnan(u_pred_masked)]
+        v_optimum = v_pred_masked[~np.isnan(v_pred_masked)]
+        p_optimum = p_pred_masked[~np.isnan(p_pred_masked)]
+
+        u_min = u_optimum.min()
+        u_max = u_optimum.max()
+        v_min = v_optimum.min()
+        v_max = v_optimum.max()
+        p_min = p_optimum.min()
+        p_max = p_optimum.max()
+
+    # --- Plotting ---
+
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+
+    # 1. PINN Prediction u 
+    u_plot = axes[0].scatter(X,Y, c=u_pred_masked,alpha=0.5, edgecolors='none', cmap="jet", marker='o', s=2, vmin=u_min, vmax=u_max)
+    # Overlay the sparse data points used for training
+    axes[0].plot(x_airfoil.cpu(), y_airfoil.cpu(), color='black', linewidth=2 )
+    axes[0].set_xticks([])
+    axes[0].set_yticks([])
+    axes[0].set_xlim([x_min, x_max])
+    axes[0].set_ylim([y_min, y_max])
+    axes[0].set_title(f"PINN Simulation for u field")
+    fig.colorbar(u_plot, ax=axes[0], fraction=0.046, pad=0.04)
+
+    # 2. PINN Prediction v 
+    v_plot = axes[1].scatter(X, Y, c=v_pred_masked, alpha=0.5, edgecolors='none', cmap="jet", marker='o', s=2, vmin=v_min, vmax=v_max)
+    # Overlay the sparse data points used for training
+    axes[1].plot(x_airfoil.cpu(), y_airfoil.cpu(), color='black', linewidth=2 )
+    axes[1].set_xticks([])
+    axes[1].set_yticks([])
+    axes[1].set_xlim([x_min, x_max])
+    axes[1].set_ylim([y_min, y_max])
+    axes[1].set_title(f"PINN Simulation for v field")
+    fig.colorbar(v_plot, ax=axes[1], fraction=0.046, pad=0.04)
+
+    # 3. PINN Prediction p 
+    p_plot = axes[2].scatter(X,Y, c=p_pred_masked,alpha=0.5, edgecolors='none', cmap="jet", marker='o', s=2, vmin=p_min, vmax=p_max)
+    # Overlay the sparse data points used for training
+    axes[2].plot(x_airfoil.cpu(), y_airfoil.cpu(), color='black', linewidth=2 )
+    axes[2].set_xticks([])
+    axes[2].set_yticks([])
+    axes[2].set_xlim([x_min, x_max])
+    axes[2].set_ylim([y_min, y_max])
+    axes[2].set_title(f"PINN Simulation for p field")
+    fig.colorbar(p_plot, ax=axes[2], fraction=0.046, pad=0.04)
+    plt.tight_layout()
+    plt.savefig("Field_Global_PINN.png", dpi=150, bbox_inches='tight')
+
+def comparison_cfd(model, device, cfd_file):
+
+    if not os.path.exists(cfd_file):
+        with open(cfd_file, 'w') as f:
+            pass
+        
+    reader = pv.OpenFOAMReader(cfd_file)
+
+    reader.set_active_time_value(3104)
+
+    # Lire le maillage
+    mesh = reader.read()
+    internal_mesh = mesh["internalMesh"]    
+
+    coords = torch.tensor(internal_mesh.points, dtype=torch.float).to(device)
+    velocity_cfd = internal_mesh.point_data["U"]
+    u_cfd = velocity_cfd[:,0:1]
+    v_cfd = velocity_cfd[:,1:2]
+    p_cfd = internal_mesh.point_data["p"]
+
+    # Prediction
+    model.eval()
+    with torch.no_grad():
+        out = model(coords[:,0:1], coords[:,1:2]).cpu().numpy()
+        u_pred = out[:,0:1]
+        v_pred = out[:,1:2]
+        p_pred = out[:,2:3]
+
+    u_min = u_cfd.min()
+    u_max = u_cfd.max()
+    v_min = v_cfd.min()
+    v_max = v_cfd.max()
+    p_min = p_cfd.min()
+    p_max = p_cfd.max()
+
+    diff_u = np.linalg.norm(u_cfd.flatten() - u_pred.flatten()) / (np.linalg.norm(u_cfd.flatten()) + 1e-8)
+    map_u = (u_cfd.flatten() - u_pred.flatten())/(u_max.flatten())
+    diff_v = np.linalg.norm(v_cfd.flatten() - v_pred.flatten()) / (np.linalg.norm(v_cfd.flatten()) + 1e-8)  
+    map_v = (v_cfd.flatten() - v_pred.flatten())/(v_max.flatten())
+    diff_p = np.linalg.norm(p_cfd.flatten() - p_pred.flatten()) / (np.linalg.norm(p_cfd.flatten()) + 1e-8)  
+    map_p = (p_cfd.flatten() - p_pred.flatten())/(p_max.flatten())
+    internal_mesh.point_data["error_U"] = map_u
+    internal_mesh.point_data["u_cfd"] = u_cfd.flatten()
+    internal_mesh.point_data["u_PINN"] = u_pred.flatten()
+    internal_mesh.point_data["error_V"] = map_v
+    internal_mesh.point_data["v_cfd"] = v_cfd.flatten()
+    internal_mesh.point_data["v_PINN"] = v_pred.flatten()
+    internal_mesh.point_data["error_p"] = map_p
+    internal_mesh.point_data["p_cfd"] = p_cfd.flatten()
+    internal_mesh.point_data["p_PINN"] = p_pred.flatten()
+
+    plotter = pv.Plotter(off_screen=True, shape=(3,3), window_size=[1920, 1080])
+
+    plotter.subplot(0,0)
+    plotter.add_mesh(internal_mesh.copy(), scalars="error_U", cmap="coolwarm", scalar_bar_args={"title": "Error U "})
+    plotter.add_text(f"Relative L2 Error for u: {diff_u*100:.2f}%")
+    plotter.view_xy()
+    plotter.subplot(0,1)
+    plotter.add_mesh(internal_mesh.copy(), scalars="u_cfd", cmap="jet", scalar_bar_args={"title": " u_cfd (m/s)"}, clim=[u_min, u_max])
+    plotter.view_xy()
+    plotter.subplot(0,2)
+    plotter.add_mesh(internal_mesh.copy(), scalars="u_PINN", cmap="jet", scalar_bar_args={"title": " u_pinn (m/s)"}, clim=[u_min, u_max])
+    plotter.view_xy()
+
+    plotter.subplot(1,0)
+    plotter.add_mesh(internal_mesh.copy(), scalars="error_V", cmap="coolwarm", scalar_bar_args={"title": "Error V "})
+    plotter.add_text(f"Relative L2 Error for v: {diff_v*100:.2f}%")
+    plotter.view_xy()
+    plotter.subplot(1,1)
+    plotter.add_mesh(internal_mesh.copy(), scalars="v_cfd", cmap="jet", scalar_bar_args={"title": " v_cfd (m/s)"}, clim=[v_min, v_max])
+    plotter.view_xy()
+    plotter.subplot(1,2)
+    plotter.add_mesh(internal_mesh.copy(), scalars="v_PINN", cmap="jet", scalar_bar_args={"title": " v_pinn (m/s)"}, clim=[v_min, v_max])
+    plotter.view_xy()
+
+    plotter.subplot(2,0)
+    plotter.add_mesh(internal_mesh.copy(), scalars="error_p", cmap="coolwarm", scalar_bar_args={"title": "Error p "})
+    plotter.add_text(f"Relative L2 Error for p: {diff_p*100:.2f}%")
+    plotter.view_xy()
+    plotter.subplot(2,1)
+    plotter.add_mesh(internal_mesh.copy(), scalars="p_cfd", cmap="jet", scalar_bar_args={"title": " p_cfd (m/s)"}, clim=[p_min, p_max])
+    plotter.view_xy()
+    plotter.subplot(2,2)
+    plotter.add_mesh(internal_mesh.copy(), scalars="p_PINN", cmap="jet", scalar_bar_args={"title": " p_pinn (m/s)"}, clim=[p_min, p_max])
+    plotter.view_xy()
+
+    plotter.screenshot("Comparison_CFD_PINN.png")
+    plotter.close()
+
+        
 
 
-fig, axes = plt.subplots(3, 1, figsize=(10, 8))
+if __name__ == "__main__":
 
-# 1. PINN Prediction u 
-u_plot = axes[0].scatter(X,Y, c=u_pred_masked,alpha=0.5, edgecolors='none', cmap="jet", marker='o', s=2, vmin=u_min, vmax=u_max)
-# Overlay the sparse data points used for training
-axes[0].plot(x_airfoil.cpu(), y_airfoil.cpu(), color='black', linewidth=2 )
-axes[0].set_xticks([])
-axes[0].set_yticks([])
-axes[0].set_xlim([x_min, x_max])
-axes[0].set_ylim([y_min, y_max])
-axes[0].set_title(f"PINN Simulation for u field")
-fig.colorbar(u_plot, ax=axes[0], fraction=0.046, pad=0.04)
+    # --- Argument Definition ---
+    parser = argparse.ArgumentParser(description= "PINN Airfoil Simulator")
+    parser.add_argument('-t', action='store_true', help='Launch Training')
+    parser.add_argument('-v', type=str, help='Path to the model .pth')
+    parser.add_argument('-c', type=str, help='Path to the model .pth')
+    args = parser.parse_args()
 
-# 2. PINN Prediction v 
-v_plot = axes[1].scatter(X, Y, c=v_pred_masked, alpha=0.5, edgecolors='none', cmap="jet", marker='o', s=2, vmin=v_min, vmax=v_max)
-# Overlay the sparse data points used for training
-axes[1].plot(x_airfoil.cpu(), y_airfoil.cpu(), color='black', linewidth=2 )
-axes[1].set_xticks([])
-axes[1].set_yticks([])
-axes[1].set_xlim([x_min, x_max])
-axes[1].set_ylim([y_min, y_max])
-axes[1].set_title(f"PINN Simulation for v field")
-fig.colorbar(v_plot, ax=axes[1], fraction=0.046, pad=0.04)
+    # Configuration for reproducibility
+    torch.manual_seed(42)
+    np.random.seed(42)
 
-# 3. PINN Prediction p 
-p_plot = axes[2].scatter(X,Y, c=p_pred_masked,alpha=0.5, edgecolors='none', cmap="jet", marker='o', s=2, vmin=p_min, vmax=p_max)
-# Overlay the sparse data points used for training
-axes[2].plot(x_airfoil.cpu(), y_airfoil.cpu(), color='black', linewidth=2 )
-axes[2].set_xticks([])
-axes[2].set_yticks([])
-axes[2].set_xlim([x_min, x_max])
-axes[2].set_ylim([y_min, y_max])
-axes[2].set_title(f"PINN Simulation for p field")
-fig.colorbar(p_plot, ax=axes[2], fraction=0.046, pad=0.04)
-plt.tight_layout()
-plt.savefig("Field_Global_PINN.png", dpi=150, bbox_inches='tight')
+    # Use GPU if available, otherwise CPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Training on: {device}")
+
+    x_max = 2.0
+    x_min = -1
+    y_max = 1
+    y_min = -1
+
+    m = 2 
+    p = 4 
+    t = 12
+    
+    x_airfoil, y_airfoil = generate_airfoil(m, p, t, device)
+
+    # Entrainement 
+    if args.t:
+        print("Training Mode Starting...")
+        rho = 1.0
+        mu = 0.01
+
+        batch_size = 18000
+        train(x_airfoil, y_airfoil, rho, mu, batch_size, device)
+
+
+    # Visulisation 
+    elif args.v:
+        print("Visualization Mode launch ")
+        x_airfoil = x_airfoil.cpu()
+        y_airfoil = y_airfoil.cpu()
+        model = PINN().to(device)
+        model.load_state_dict(torch.load(args.v))
+        visualise_field(model, x_min, x_max, y_min, y_max, x_airfoil, y_airfoil, grid_size=1024, device=device )
+
+    # Comparaison 
+    elif args.c:
+        print("Comparison Mode launch ")
+        model = PINN().to(device)
+        model.load_state_dict(torch.load(args.c))
+        comparison_cfd(model, device, "Validation_PINN_OF/airFoil_PINN_Validation/airfoil_PINN_Validation.foam"  )
+      
