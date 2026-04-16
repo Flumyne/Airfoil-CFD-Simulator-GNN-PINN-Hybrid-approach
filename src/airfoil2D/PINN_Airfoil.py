@@ -211,7 +211,7 @@ def calc_force(m, p, t, mu, rho, alpha, model, device):
 
     F_v_x = torch.sum(mu*(du_dx*vec_n[:,0:1] + du_dy*vec_n[:,1:2])* dl)
     F_v_y = torch.sum(mu*(dv_dx*vec_n[:,0:1] + dv_dy*vec_n[:,1:2])* dl)
-    Fv = torch.stack([F_v_x.detach().view(1), F_v_y.detach().view(1)]).to(device)
+    Fv = torch.cat([F_v_x.view(1), F_v_y.view(1)]).to(device)
     Fp = torch.sum(-p_pred * vec_n * dl, dim=0)
 
     F_tot = Fp + Fv
