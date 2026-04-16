@@ -4,4 +4,3 @@ numpy
 matplotlib
 plotly
 shapely
-pyvista

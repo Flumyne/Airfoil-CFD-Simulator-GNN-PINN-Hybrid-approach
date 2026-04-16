@@ -5,7 +5,11 @@ import matplotlib.pyplot as plt
 from src.airfoil2D.generate_naca import generate_naca4
 from shapely.geometry import Point, Polygon
 import argparse
-import pyvista as pv
+try:
+    import pyvista as pv
+except ImportError:
+    pv = None  # pyvista not available in Streamlit Cloud environment
+
 import os 
 import random
 
