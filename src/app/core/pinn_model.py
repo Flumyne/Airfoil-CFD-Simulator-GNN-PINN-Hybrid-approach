@@ -55,7 +55,7 @@ def predict_field(model, alpha_deg, m, p, t, grid_size, device):
 
         # Masking logic
         # Optimize masking: only check points near the airfoil
-        mask_grid = np.array([surface.contains(Point(x, y)) for x, y in zip(x_test_np, y_test_np)])
+        mask_grid = np.array([surface.contains(Point(val_x, val_y)) for val_x, val_y in zip(x_test_np.flatten(), y_test_np.flatten())])
         mask_2d = mask_grid.reshape(grid_size, grid_size)
         
         u_pred_masked = u_pred.copy()

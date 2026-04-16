@@ -20,6 +20,11 @@ tab1,tab2 = st.tabs(
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = load_pinn_model(MODEL_PATH, device)
 
+with st.expander("🛠️ Debug : Statistiques du Modèle"):
+    st.write("Ces valeurs ne doivent pas être 0 et 1 :")
+    st.write(f"**Mu (moyennes) :** {model.mu.cpu().numpy()}")
+    st.write(f"**Sigma (std) :** {model.sigma.cpu().numpy()}")
+
 with tab1 :
     input_alpha = st.slider("Choose the angle of attack", -10.0, 15.0, 0.1)
     input_grid_size = st.select_slider("Choose the grid resolution", [256, 512, 1024, 2048])
