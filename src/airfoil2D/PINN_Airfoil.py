@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from generate_naca import generate_naca4
+from src.airfoil2D.generate_naca import generate_naca4
 from shapely.geometry import Point, Polygon
 import argparse
 import pyvista as pv

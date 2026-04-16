@@ -89,6 +89,14 @@ La simulation a été validée sur une tuyère de 1.3m avec un rapport de pressi
 - `airfoil_gnn_best.pt` : Poids du modèle GNN entraîné.
 - `pinn_airfoil_model_V2.pth` : Poids du modèle PINN paramétrique.
 
+## 🖥️ Application Interactive (Streamlit)
+
+Une application Streamlit est disponible pour tester le PINN paramétrique en temps réel. Elle permet de :
+- Faire varier l'angle d'attaque ($\alpha$) via un slider.
+- Visualiser instantanément les champs de vitesse ($u, v$) et de pression ($p$).
+- Obtenir les coefficients de portance ($C_l$) et de traînée ($C_d$).
+- Un gain de performance significatif : **~5s (PINN)** vs **~380s (OpenFOAM)** pour une simulation complète.
+
 ## 🛠️ Installation & Utilisation
 1. **Pré-requis** : PyTorch, PyTorch Geometric, PyVista, Scikit-Learn, OpenFOAM (v2512 recommandé).
 2. **Entraînement PINN** : `python src/airfoil2D/PINN_Airfoil.py -t`
@@ -97,9 +105,10 @@ La simulation a été validée sur une tuyère de 1.3m avec un rapport de pressi
 5. **Entraînement GNN** : `python src/airfoil2D/train.py`
 
 ## 🗺️ Roadmap (2026)
+
 1. ✅ PINN Paramétrique validé multi-angles
-2. ⌛ Déploiement Streamlit pour démo interactive
-3. ⌛ PINN Paramétrique Aile NACA
+2. ✅ Déploiement Streamlit pour démo interactive
+3. ⌛ PINN Paramétrique Aile NACA (Généralisation)
 4. ⌛ Entraînement GNN-Supersonique
 
 ---
