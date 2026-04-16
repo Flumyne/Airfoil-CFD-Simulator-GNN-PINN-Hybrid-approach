@@ -24,3 +24,6 @@ MU = 0.01
 DEFAULT_M = 2
 DEFAULT_P = 4
 DEFAULT_T = 12
+
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))

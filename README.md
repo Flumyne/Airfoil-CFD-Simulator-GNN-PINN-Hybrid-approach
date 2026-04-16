@@ -1,5 +1,7 @@
 # Airfoil & Rocket Nozzle SciML Simulator (GNN-PINN Hybrid)
 
+https://airfoil-pinn-simulator-florian-royon-chalendard.streamlit.app
+
 Ce projet présente un simulateur aérodynamique intelligent capable de prédire les champs physiques complexes avec une précision quasi-CFD. Initialement focalisé sur l'aéronautique (ailes NACA), le projet évolue vers des applications spatiales critiques (tuyères supersoniques) en intégrant des principes de **Scientific Machine Learning (SciML)**.
 
 Il utilise une architecture hybride combinant les **Graph Neural Networks (GNN)** et les **Physics-Informed Neural Networks (PINN)** pour servir de modèle de substitution (*Surrogate Model*) temps réel.
@@ -91,6 +93,7 @@ La simulation a été validée sur une tuyère de 1.3m avec un rapport de pressi
 
 ## 🖥️ Application Interactive (Streamlit)
 
+https://airfoil-pinn-simulator-florian-royon-chalendard.streamlit.app
 Une application Streamlit est disponible pour tester le PINN paramétrique en temps réel. Elle permet de :
 - Faire varier l'angle d'attaque ($\alpha$) via un slider.
 - Visualiser instantanément les champs de vitesse ($u, v$) et de pression ($p$).
