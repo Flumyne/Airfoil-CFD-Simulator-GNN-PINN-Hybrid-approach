@@ -1,5 +1,5 @@
 streamlit>=1.33
-torch>=2.0
+torch==2.7.1
 numpy
 matplotlib
 plotly
