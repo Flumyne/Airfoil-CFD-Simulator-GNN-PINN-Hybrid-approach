@@ -17,9 +17,12 @@ import random
 # Yubiao Sun, Ushnish Sengupta, Matthew Juniper
 
 class Normalizer:
+    """
+    A utility class to normalize and denormalize tensors using mean and standard deviation statistics.
+    """
     def __init__(self, tensor=None, mean=None, std=None, device='cpu'):
         super(Normalizer,self).__init__()
-        # Si on a une tenseur, on calcule les stats
+
         if tensor is not None:
             self.mean = torch.mean(tensor, dim=0).detach().to(device)
             self.std = torch.std(tensor, dim=0).detach().to(device)
@@ -29,31 +32,82 @@ class Normalizer:
             self.std = std.to(device)
         
     def encode(self, x):
+        """
+        Normalizes the input tensor.
+
+        Args:
+            x (torch.Tensor): The raw input tensor.
+
+        Returns:
+            torch.Tensor: The normalized tensor.
+        """
         return (x - self.mean) / self.std    
     
     def decode(self, x):
+        """
+        Denormalizes the input tensor back to its original scale.
+
+        Args:
+            x (torch.Tensor): The normalized input tensor.
+
+        Returns:
+            torch.Tensor: The denormalized tensor.
+        """
         return x * self.std + self.mean    
 
     def cuda(self):
+        """
+        Moves the normalizer statistics to the GPU.
+
+        Returns:
+            Normalizer: The normalizer instance on CUDA.
+        """
         self.mean = self.mean.cuda()
         self.std = self.std.cuda()
         return self    
 
-# --- 2. PINN Architecture (MLP with SiLU) ---
+# --- 1. PINN Architecture (MLP with SiLU with Fourier Embedding) ---
 hidden_layer = 128 
 
 class FourierEmbedding(nn.Module):
+    """
+    A module for Fourier feature mapping, mapping low-dimensional coordinates 
+    to a higher-dimensional space to help the network learn high-frequency details.
+    """
     def __init__(self, n_freq=6):
+        """
+        Initializes the Fourier embedding module.
+
+        Args:
+            n_freq (int): Number of frequency components to use.
+        """
         super().__init__()
         freqs = 2**torch.linspace(0, n_freq-1, n_freq)
         self.register_buffer('freqs',freqs)
 
     def forward(self,x):
+        """
+        Applies Fourier feature mapping to the input.
+
+        Args:
+            x (torch.Tensor): Input coordinates tensor.
+
+        Returns:
+            torch.Tensor: Fourier-embedded features.
+        """
         x_proj = x.unsqueeze(-1) * self.freqs
         return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=1).flatten(1)    
 
 class PINN(nn.Module):
+    """
+    Physics-Informed Neural Network (PINN) model architecture for predicting 
+    fluid flow (u, v, p) around an airfoil based on spatial and parametric inputs.
+    """
     def __init__(self):
+        """
+        Initializes the PINN architecture with a local spatial network, 
+        a global parametric network, and an output combination layer.
+        """
         super(PINN, self).__init__()
         self.register_buffer('mu', torch.zeros(3))
         self.register_buffer('sigma', torch.ones(3))
@@ -83,6 +137,17 @@ class PINN(nn.Module):
         )
 
     def forward(self, x, y, alpha):
+        """
+        Forward pass for predicting flow fields.
+
+        Args:
+            x (torch.Tensor): Spatial x-coordinates.
+            y (torch.Tensor): Spatial y-coordinates.
+            alpha (torch.Tensor): Angle of attack (AOA).
+
+        Returns:
+            torch.Tensor: Predicted flow components [u, v, p].
+        """
         # Concatenate x and y for the network input
         inputs_local = torch.cat([x, y], dim=1)
         alpha_norm = (alpha - self.mu[2:3]) / self.sigma[2:3]
@@ -95,7 +160,26 @@ class PINN(nn.Module):
 
         return self.output_net(combined)
 
+# --- 2. Functions ---
 def calc_loss(x_col, y_col, x_bc, y_bc, x_airfoil, y_airfoil, u_bc, v_bc, p_bc, rho, mu, alpha, mask_side, model):
+    """
+    Computes the total loss for the PINN, integrating PDE (physics) loss and 
+    boundary condition (BC) losses.
+
+    Args:
+        x_col, y_col (torch.Tensor): Collocation points for PDE residuals.
+        x_bc, y_bc (torch.Tensor): Points for domain boundary conditions.
+        x_airfoil, y_airfoil (torch.Tensor): Points for airfoil surface.
+        u_bc, v_bc, p_bc (torch.Tensor): Target values at domain boundaries.
+        rho (float): Fluid density.
+        mu (float): Dynamic viscosity.
+        alpha (float): Angle of attack.
+        mask_side (torch.Tensor): Identifiers for which boundary each BC point belongs to.
+        model (PINN): The neural network model.
+
+    Returns:
+        tuple: (total_loss, loss_pde, loss_inlet, loss_outlet, loss_top, loss_bot, loss_wall_airfoil)
+    """
     
     # --- 1. Loss PDE (Physics) ---
     out = model(x_col, y_col, torch.full_like(x_col,alpha))
@@ -173,6 +257,21 @@ def calc_loss(x_col, y_col, x_bc, y_bc, x_airfoil, y_airfoil, u_bc, v_bc, p_bc, 
     return loss, loss_pde, loss_inlet, loss_outlet, loss_top, loss_bot, loss_wall_airfoil
 
 def calc_force(m, p, t, mu, rho, alpha, model, device):
+    """
+    Computes aerodynamic lift (Cl) and drag (Cd) coefficients by integrating 
+    surface pressure and viscous stresses over the airfoil profile.
+
+    Args:
+        m, p, t (float): NACA 4-digit airfoil parameters.
+        mu (float): Dynamic viscosity.
+        rho (float): Fluid density.
+        alpha (float): Angle of attack in radians.
+        model (PINN): Trained PINN model.
+        device (torch.device): Computing device (CPU/CUDA).
+
+    Returns:
+        tuple: (lift_coefficient Cl, drag_coefficient Cd)
+    """
 
     x_s, y_s = generate_naca4(m, p, t, 1000)
 
@@ -226,8 +325,20 @@ def calc_force(m, p, t, mu, rho, alpha, model, device):
 
     return Cl,Cd
 
-# --- 1. Data Generation (Collocation, Boundary, and Sparse Data) ---
+
+# --- 3. Data Generation (Collocation, Boundary, and Sparse Data) ---
 def generate_airfoil(m,p,t, device) :
+    """
+    Generates airfoil surface coordinates and a geometric representation.
+
+    Args:
+        m, p, t (float): NACA 4-digit parameters.
+        device (torch.device): Computing device.
+
+    Returns:
+        tuple: (x_airfoil, y_airfoil, surface_polygon)
+    """
+
     x_airfoil,y_airfoil = generate_naca4(m,p,t,2000)
     surface = Polygon(np.column_stack((x_airfoil, y_airfoil)))
 
@@ -237,6 +348,19 @@ def generate_airfoil(m,p,t, device) :
     return x_airfoil, y_airfoil, surface
 
 def data_generation(x_airfoil, y_airfoil, surface, batch_size, device, fixed_alpha=None):
+    """
+    Generates collocation points and boundary condition points for training.
+
+    Args:
+        x_airfoil, y_airfoil (torch.Tensor): Airfoil surface points.
+        surface (Polygon): Shapely representation of the airfoil.
+        batch_size (int): Number of points to sample.
+        device (torch.device): Computing device.
+        fixed_alpha (float, optional): Fixed AOA in radians. If None, samples randomly.
+
+    Returns:
+        tuple: Sampled coordinates and BC target values.
+    """
 
     x_max_local = x_airfoil.max() + 0.1
     x_min_local = x_airfoil.min() - 0.1
@@ -302,9 +426,21 @@ def data_generation(x_airfoil, y_airfoil, surface, batch_size, device, fixed_alp
 
     return x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, alpha_rad, mask_side
 
+# --- 4. Model Training ---
 def train(x_airfoil, y_airfoil, surface, rho, mu, batch_size, device):
+    """
+    Trains the PINN model using a two-phase optimization (AdamW followed by L-BFGS) 
+    and saves the resulting parameters.
 
-    # Compute normalizer stats: use data for x,y and full alpha range for alpha
+    Args:
+        x_airfoil, y_airfoil (torch.Tensor): Airfoil geometry.
+        surface (Polygon): Airfoil polygon for point masking.
+        rho (float): Fluid density.
+        mu (float): Fluid viscosity.
+        batch_size (int): Training batch size.
+        device (torch.device): Computing device.
+    """
+
     x_col, y_col, x_bc, y_bc, u_bc, v_bc, p_bc, alpha, mask_side = data_generation(x_airfoil, y_airfoil, surface, batch_size, device)
     alpha_range = torch.linspace(-10*np.pi/180, 15*np.pi/180, x_col.shape[0]).unsqueeze(1).to(device)
     x_cat = torch.cat([x_col, y_col, alpha_range], dim=1).to(device)
@@ -318,7 +454,7 @@ def train(x_airfoil, y_airfoil, surface, rho, mu, batch_size, device):
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.002)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1500, eta_min = 1e-5)
 
-    # --- 4. Training Loop and Loss Function ---
+    # --- Training Loop and Loss Function ---
 
     epochs = 1500
     loss_history = []
@@ -490,8 +626,14 @@ def train(x_airfoil, y_airfoil, surface, rho, mu, batch_size, device):
 
     visualize_loss(loss_history, loss_pde_history, loss_inlet_history, loss_outlet_history, loss_top_bottom_history, loss_airfoil_history)
 
-# --- 5. Results and Visualization (Super-Resolution Proof) ---
+# --- 5. Results and Visualization ---
 def visualize_loss(loss_history, loss_pde_history, loss_inlet_history, loss_outlet_history, loss_top_bottom_history, loss_airfoil_history):
+    """
+    Generates plots of training loss history to monitor convergence behavior.
+
+    Args:
+        Various history lists containing loss values per epoch.
+    """
 
     fig_res, axes_res = plt.subplots(3, 2, figsize=(12, 8))
 
@@ -523,6 +665,17 @@ def visualize_loss(loss_history, loss_pde_history, loss_inlet_history, loss_outl
     plt.savefig("Residual_PINN_V2.png", dpi=150, bbox_inches='tight')
 
 def visualise_field(model, x_min, x_max, y_min, y_max, x_airfoil, y_airfoil, alpha, grid_size, device):
+    """
+    Visualizes flow fields (velocity u, v and pressure p) across the simulation domain.
+
+    Args:
+        model (PINN): Trained model for field prediction.
+        x_min, x_max, y_min, y_max (float): Domain extents.
+        x_airfoil, y_airfoil (torch.Tensor): Airfoil geometry for plotting.
+        alpha (float): Angle of attack.
+        grid_size (int): Resolution of the visualization grid.
+        device (torch.device): Computing device.
+    """
     # Grid for global visualization
     x_grid = np.linspace(x_min, x_max, grid_size)
     y_grid = np.linspace(y_min, y_max, grid_size)
@@ -607,6 +760,19 @@ def visualise_field(model, x_min, x_max, y_min, y_max, x_airfoil, y_airfoil, alp
     plt.savefig("Field_Global_PINN_V2.png", dpi=150, bbox_inches='tight')
 
 def comparison_cfd(m, p, t, rho, mu, model, alpha, of, device, cfd_file):
+    """
+    Compares the PINN simulation results with OpenFOAM CFD data for validation.
+
+    Args:
+        m, p, t (float): Airfoil parameters.
+        rho (float): density.
+        mu (float): viscosity.
+        model (PINN): Trained PINN.
+        alpha (float): Angle of attack.
+        of (int): OpenFOAM time step index to load.
+        device (torch.device): device.
+        cfd_file (str): Path to OpenFOAM .foam file.
+    """
 
     if not os.path.exists(cfd_file):
         with open(cfd_file, 'w') as f:
